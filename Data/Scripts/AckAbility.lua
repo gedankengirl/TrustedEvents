@@ -16,11 +16,11 @@
 
     How to abuse Ability:
     * Client:
-        - ability.castEvent:Connect(ability -> write(ability, header, data))
+        - ability.castEvent:Connect(ability -> AckAbility.write(ability, header, data))
         - ability:Activate()
         - ability:Interrupt()
     * Server:
-        - ability.readyEvent:Connect(ability -> read(ability))
+        - ability.readyEvent:Connect(ability -> AckAbility.read(ability))
 
     (!) Other schemes will not work or will interfere with other
         abilities or even with Core modals (like mounts).
@@ -55,11 +55,13 @@ local PHASE_SETTINGS = {
     "cooldownPhaseSettings"
 }
 
--- set exponent part to always be finite, normalized float (2.0 for zero bytes)
-local F32_PAD_BYTE = 0x40
+-- set exponent part to always be finite, normalized float
+local F32_PADDING_BYTE = 0x40
 
 -- locations in `AbilityTarget` where we will store our bytes
--- NOTE: code can use `Rotation` too, but `SetOwnerMovementRotation' does not work.
+-- NOTE: the code can also use `Rotation`, but it looks like the user-set
+-- `OwnerMovementRotation` is not replicated to the server.
+
 local DATA_VECTORS = {
     "AimPosition",
     "AimDirection",
@@ -104,10 +106,11 @@ local crc8 do
     -- CRC value, crc. If `data` is nil, then the other argument are
     -- ignored, and the initial CRC (CRC of zero bytes), is returned.
     crc8 = function(data, crc)
-        local INIT = 0x00
-        if data == nil then return INIT end
-        crc = crc or INIT
+        local INITIAL_CRC = 0x00
+        if data == nil then return INITIAL_CRC end
+        crc = crc or INITIAL_CRC
         assert(crc == (crc & 0xff), "`crc` should be `uint8`")
+        -- int32 or uint32
         if mtype(data) == "integer" and data >= -0x80000000 and data <= 0xffffffff then
             crc = table_bytes[crc ~ (data >> 24 & 0xff)]
             crc = table_bytes[crc ~ (data >> 16 & 0xff)]
@@ -159,7 +162,7 @@ local function float_to_bytes(float32)
     assert(mtype(float32), "argument should be a number")
     local b0, b1, b2, b3, _ = unpack("BBBB", pack("f", float32))
     -- one more check against garbage in data
-    if b3 ~= F32_PAD_BYTE then
+    if b3 ~= F32_PADDING_BYTE then
         return false
     end
     return b0, b1, b2
@@ -174,7 +177,7 @@ end
 local function bytes_to_float(b0, b1, b2)
     b0, b1, b2 = b0 or 0, b1 or 0, b2 or 0
     assert(is_byte(b0) and is_byte(b1) and is_byte(b2), "arguments should be bytes or nils")
-    local float32, _ = unpack("f", pack("BBBB", b0, b1, b2, F32_PAD_BYTE))
+    local float32, _ = unpack("f", pack("BBBB", b0, b1, b2, F32_PADDING_BYTE))
     return float32
 end
 
@@ -187,11 +190,11 @@ local function append(array, max, ...)
     local n = select("#", ...)
     local i = 1
     while #array < max and i <= n do
-        local val = select(i, ...)
-        if not val then
+        local value = select(i, ...)
+        if not value then
             return false
         end
-        array[#array + 1] = val
+        array[#array + 1] = value
         i = i + 1
     end
     return true
@@ -211,7 +214,7 @@ function AckAbility.check(ability)
     for _, phase in ipairs(PHASE_SETTINGS) do
         local setting = ability[phase]
         if phase:find("cast") then
-            -- NOTE: not sure it's a necessary condition, but let it be
+            -- not sure it's a necessary condition, but let it be
             assert(setting.duration >= 0.1)
         end
         assert(not setting.preventsOtherAbilities)
@@ -222,7 +225,7 @@ function AckAbility.check(ability)
 end
 
 -- @ read :: ability -> header:int32, data:str | false, err
--- reads header:int32 and up to MAX_DATA_BYTES data:string from AbilityTarget
+-- reads header:int32 and up to MAX_DATA_BYTES `data` from AbilityTarget
 function AckAbility.read(ability)
     assert(ability and ability.type == "Ability")
     local target = ability:GetTargetData()
@@ -257,14 +260,14 @@ function AckAbility.read(ability)
 end
 
 -- @ write :: ability, header:int32, data:str ^-> nil
--- writes header:int32 and up to MAX_DATA_BYTES data:string to AbilityTarget
+-- writes header:int32 and up to MAX_DATA_BYTES `data` to AbilityTarget
 function AckAbility.write(ability, header, data)
     data = data or ""
-    assert(ability and ability.type == "Ability")
-    assert(data and type(data) == "string", "data should be a `string`")
-    assert(#data <= MAX_DATA_BYTES, "data length exceeds MAX_DATA_BYTES")
+    assert(ability and ability.type == "Ability", "first argument should be `Ability`")
     assert(mtype(data) == "integer" and data >= -0x80000000 and data <= 0xffffffff,
         "header should be 32-bit integer")
+    assert(data and type(data) == "string", "data should be a `string`")
+    assert(#data <= MAX_DATA_BYTES, "data length exceeds MAX_DATA_BYTES")
     local target = ability:GetTargetData()
     local header_crc = crc8(header)
     local data_crc = crc8(data)

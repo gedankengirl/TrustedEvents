@@ -1185,15 +1185,15 @@ Objects {
   ParentId: 16857209221953433243
   UnregisteredParameters {
     Overrides {
-      Name: "cs:Base64"
+      Name: "cs:AckAbility"
       AssetReference {
-        Id: 17269496465138592771
+        Id: 2765636799855673298
       }
     }
     Overrides {
-      Name: "cs:MessagePack"
+      Name: "cs:Base64"
       AssetReference {
-        Id: 11047531607100079355
+        Id: 17269496465138592771
       }
     }
     Overrides {
@@ -1203,22 +1203,46 @@ Objects {
       }
     }
     Overrides {
+      Name: "cs:Maid"
+      AssetReference {
+        Id: 16867799801641793617
+      }
+    }
+    Overrides {
+      Name: "cs:MessagePack"
+      AssetReference {
+        Id: 11047531607100079355
+      }
+    }
+    Overrides {
       Name: "cs:Queue"
       AssetReference {
         Id: 1331718247682064379
       }
     }
     Overrides {
-      Name: "cs:AckAbility"
-      AssetReference {
-        Id: 2765636799855673298
-      }
+      Name: "cs:Base64:tooltip"
+      String: "Base64 encoding/decoding"
     }
     Overrides {
-      Name: "cs:Maid"
-      AssetReference {
-        Id: 16867799801641793617
-      }
+      Name: "cs:BitVector32:tooltip"
+      String: "BitVector32 data structure"
+    }
+    Overrides {
+      Name: "cs:Maid:tooltip"
+      String: "Module for resource management "
+    }
+    Overrides {
+      Name: "cs:MessagePack:tooltip"
+      String: "MessagePack serialization with Core support"
+    }
+    Overrides {
+      Name: "cs:AckAbility:tooltip"
+      String: "Module for sending  messages through the Ability"
+    }
+    Overrides {
+      Name: "cs:Queue:tooltip"
+      String: "Queue data structure"
     }
   }
   Collidable_v2 {

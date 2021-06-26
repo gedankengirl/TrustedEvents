@@ -5,7 +5,6 @@
     * 32-bit bitset that supports conversion from/to uint32 and int32.
     * Supports set/get bits with index `[i]` notation (i in [0, 31]).
     * Supports `extract` and `replace` bitfields (like in Lua 5.2).
-    (!) Module retuns only constructor, not whole metatable.
 --]]
 
 local getmetatable, setmetatable = getmetatable, setmetatable
@@ -107,7 +106,16 @@ end
 -- @ bitvector32.eqv :: self, integer -> bool
 -- equality to integer
 function bitvector32:eqv(integer)
-    return mathtype(integer) == "integer" and self._data == (integer & 0xFFFFFFFF)
+    if  mathtype(integer) == "integer" then
+        -- int32 or uint32
+        if integer >= -0x80000000 and integer <= 0xFFFFFFFF then
+            -- cast to uint32
+            return self._data == integer & 0xFFFFFFFF
+        else
+            return false
+        end
+    end
+    return false
 end
 
 -- @ bitvector32.int32 :: self -> int32
@@ -115,12 +123,12 @@ end
 function bitvector32:int32()
     local n = self._data
     assert(n == (n & 0xFFFFFFFF))
-    -- convert to signed
+    -- cast to int32
     return n <= 0x7FFFFFFF and n or n - 0x100000000
 end
 
 function bitvector32:__tostring()
-    return format("<%s:%s>", bitvector32.type, self:bitstring('|'))
+    return format("<%s>:%s", bitvector32.type, self:bitstring('|'))
 end
 
 local NIBBLES = {[0] =
@@ -159,7 +167,8 @@ bitvector32.__len = bitvector32.popcount
 -- Tests
 ---------------------------------------
 local function basic_test()
-    local bv = bitvector32.new()
+    local bv32 = bitvector32.new
+    local bv = bv32()
     assert(not bv[1])
     bv[0] = 1
     assert(bv[0])
@@ -168,7 +177,7 @@ local function basic_test()
     assert(bv[31])
 
     do -- check operator aliases
-        local bv1 = bitvector32.new(bv:int32())
+        local bv1 = bv32(bv:int32())
         assert(bv == bv1)
         assert(#bv == #bv1)
         assert(bv() == bv1())
@@ -180,36 +189,36 @@ local function basic_test()
 
     -- bitstring
     assert(bv:bitstring("|") == "1000|0000|0000|0000|0000|0000|0000|0001")
-    assert(bitvector32.new(0x55555555):bitstring() == "01010101010101010101010101010101")
-    assert(0x12345678 == tonumber(bitvector32.new(0x12345678):bitstring(), 2))
+    assert(bv32(0x55555555):bitstring() == "01010101010101010101010101010101")
+    assert(0x12345678 == tonumber(bv32(0x12345678):bitstring(), 2))
 
     -- uint32 <-> int32
     do
         local i32 = -2147483648
-        local b = bitvector32.new(i32)
+        local b = bv32(i32)
         assert(b:uint32() == 2147483648)
         assert(b:int32() == i32)
         assert(b:uint32() ~= i32)
-        assert(bitvector32.new(b:uint32()) == b)
+        assert(bv32(b:uint32()) == b)
         assert(b:eqv(-i32))
         assert(b:eqv(i32))
     end
 
     -- roundtrip
     do
-        local b = bitvector32.new()
+        local b = bv32()
         b[1] = true
         b[2] = true
         b[5] = true
         b[11] = true
         b[31] = true
-        local c = bitvector32.new(b:int32())
+        local c = bv32(b:int32())
         for i = 0, 31 do assert(b[i] == c[i]) end
     end
 
     -- extract-replace
     local x = 0
-    local u32 = bitvector32.new(0x33333333)
+    local u32 = bv32(0x33333333)
     x = u32:extract(0, 8)
     assert(x == 0x33)
     x = u32:extract(4, 1)
@@ -217,19 +226,19 @@ local function basic_test()
     x = u32:extract(28, 4)
     assert(x == 3)
 
-    local u = bitvector32.new(0xff94) -- i = 4, w = 3
-    x = bitvector32.new(u:extract(4, 3))
+    local u = bv32(0xff94) -- i = 4, w = 3
+    x = bv32(u:extract(4, 3))
     x:replace(0xF, 4, 4)
     assert(x:uint32() == 0xF1)
 
     -- popcount
-    local fives = bitvector32.new(0x55555555) -- binary: 0101...
+    local fives = bv32(0x55555555) -- binary: 0101...
     assert(fives:popcount() == 16)
     if not CORE_ENV then
         for _ = 1, 1000 do
             local xx = random(-2147483648, 2147483647)
-            local b = bitvector32.new(xx)
-            local c = bitvector32.new(b:int32())
+            local b = bv32(xx)
+            local c = bv32(b:int32())
             assert(c == b)
             local c1 = b:popcount()
             local c2 = 0
@@ -242,6 +251,7 @@ end
 
 local function _bitvector32_core_resource_test()
     if not CORE_ENV then return end
+    local bv32 = bitvector32.new
     if Environment.IsPreview() and Environment.IsServer() then
         while #Game.GetPlayers() == 0 do Task.Wait() end
         local PLAYER = Game.GetPlayers()[1]
@@ -252,11 +262,11 @@ local function _bitvector32_core_resource_test()
             -- Resources
             PLAYER:SetResource(TEST_KEY, x)
             assert(x == PLAYER:GetResource(TEST_KEY))
-            local b = bitvector32.new(x)
+            local b = bv32(x)
             PLAYER:SetResource(TEST_KEY, b:int32())
             assert(b:int32() == x)
             assert(b:int32() == PLAYER:GetResource(TEST_KEY))
-            local b1 = bitvector32.new(PLAYER:GetResource(TEST_KEY))
+            local b1 = bv32(PLAYER:GetResource(TEST_KEY))
             assert(b == b1)
             PLAYER:SetResource(TEST_KEY, b:uint32())
             assert(b:int32() == PLAYER:GetResource(TEST_KEY))
@@ -266,7 +276,7 @@ local function _bitvector32_core_resource_test()
             Storage.SetPlayerData(PLAYER, pdata)
             x = Storage.GetPlayerData(PLAYER)[TEST_KEY]
             assert(x == b:int32())
-            local b2 = bitvector32.new(x)
+            local b2 = bv32(x)
             assert(b == b2)
         end
         local pdata = Storage.GetPlayerData(PLAYER)
@@ -283,7 +293,6 @@ local function self_test()
 end
 self_test()
 
--- module return
--- (!) returns only constructor, not metatable
-return bitvector32.new
+-- module
+return bitvector32
 
