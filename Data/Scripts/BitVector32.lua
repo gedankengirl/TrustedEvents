@@ -5,9 +5,7 @@
     * 32-bit bitset that supports conversion from/to uint32 and int32.
     * Supports set/get bits with index `[i]` notation (i in [0, 31]).
     * Supports `extract` and `replace` bitfields (like in Lua 5.2).
---]]
-
-local getmetatable, setmetatable = getmetatable, setmetatable
+--]] local getmetatable, setmetatable = getmetatable, setmetatable
 local random, mathtype, tonumber = math.random, math.type, tonumber
 local rawget, type, pcall = rawget, type, pcall
 local assert, print, format, concat = assert, print, string.format, table.concat
@@ -42,7 +40,8 @@ end
 
 -- 0-based indices in [0, 31]
 function bitvector32:__newindex(i, v)
-    assert(mathtype(i) == "integer" and i >= 0 and i <= 31, "index should be integer in [0, 31]")
+    assert(mathtype(i) == "integer" and i >= 0 and i <= 31,
+           "index should be integer in [0, 31]")
     self._data = v and self._data | (1 << i) or self._data & ~(1 << i)
 end
 
@@ -106,7 +105,7 @@ end
 -- @ bitvector32.eqv :: self, integer -> bool
 -- equality to integer
 function bitvector32:eqv(integer)
-    if  mathtype(integer) == "integer" then
+    if mathtype(integer) == "integer" then
         -- int32 or uint32
         if integer >= -0x80000000 and integer <= 0xFFFFFFFF then
             -- cast to uint32
@@ -131,12 +130,14 @@ function bitvector32:__tostring()
     return format("<%s>:%s", bitvector32.type, self:bitstring('|'))
 end
 
+-- LuaFormatter off
 local NIBBLES = {[0] =
-    "0000", "0001", "0010", "0011",
-    "0100", "0101", "0110", "0111",
-    "1000", "1001", "1010", "1011",
-    "1100", "1101", "1110", "1111",
+"0000", "0001", "0010", "0011",
+"0100", "0101", "0110", "0111",
+"1000", "1001", "1010", "1011",
+"1100", "1101", "1110", "1111",
 }
+-- LuaFormatter on
 
 -- @ bitvector32:bitstring :: self[, sep=''] -> str
 -- returns a string with individual bits representation (for debug purpose)
@@ -154,7 +155,9 @@ function bitvector32:bitstring(sep)
 end
 
 -- returns data truncated
-function bitvector32:uint32() return self._data end
+function bitvector32:uint32()
+    return self._data
+end
 
 -- alias `eq` to `==` operator
 bitvector32.__eq = bitvector32.eq
@@ -162,6 +165,31 @@ bitvector32.__eq = bitvector32.eq
 bitvector32.__call = bitvector32.uint32
 -- alias `popcount` to `#` operator
 bitvector32.__len = bitvector32.popcount
+
+---------------------------------------
+-- Extra 8 and 16 bit accessors
+---------------------------------------
+function bitvector32:get_byte(i)
+    assert(i >= 0 and i <= 3, "index should be in [0, 3]")
+    return self:extract(i * 8, 8)
+end
+
+function bitvector32:set_byte(i, value)
+    assert(i >= 0 and i <= 3, "index should be in [0, 3]")
+    assert(value == (value & 0xff), "value should be unsigned 8-bit integer")
+    self:replace(value, i * 8, 8)
+end
+
+function bitvector32:get_uint16(i)
+    assert(i >= 0 and i <= 1, "index should be in [0, 1]")
+    return self:extract(i * 16, 16)
+end
+
+function bitvector32:set_uint16(i, value)
+    assert(i >= 0 and i <= 1, "index should be in [0, 1]")
+    assert(value == (value & 0xffff), "value should be unsigned 16-bit integer")
+    return self:replace(value, i * 16, 16)
+end
 
 ---------------------------------------
 -- Tests
@@ -184,8 +212,12 @@ local function basic_test()
     end
 
     -- index limits
-    assert(not pcall(function() local _ = bv[32] end))
-    assert(not pcall(function() local _ = bv[-1] end))
+    assert(not pcall(function()
+        local _ = bv[32]
+    end))
+    assert(not pcall(function()
+        local _ = bv[-1]
+    end))
 
     -- bitstring
     assert(bv:bitstring("|") == "1000|0000|0000|0000|0000|0000|0000|0001")
@@ -213,7 +245,9 @@ local function basic_test()
         b[11] = true
         b[31] = true
         local c = bv32(b:int32())
-        for i = 0, 31 do assert(b[i] == c[i]) end
+        for i = 0, 31 do
+            assert(b[i] == c[i])
+        end
     end
 
     -- extract-replace
@@ -242,18 +276,45 @@ local function basic_test()
             assert(c == b)
             local c1 = b:popcount()
             local c2 = 0
-            for j = 0, 31 do c2 = c2 + (b[j] and 1 or 0) end
+            for j = 0, 31 do
+                c2 = c2 + (b[j] and 1 or 0)
+            end
             assert(c1 == c2)
         end
     end
     print("  basic_test -- ok")
 end
 
-local function _bitvector32_core_resource_test()
-    if not CORE_ENV then return end
+local function getter_setter_8bit_test()
+    local bv32 = bitvector32.new
+    local b = bv32(-1 << 7)
+    assert(b:get_byte(0) == 0x80)
+    assert(b:get_byte(3) == 0xff)
+    b:set_byte(2, 0x01)
+    assert(b:get_byte(2) == 0x01)
+    print("  getter_setter_8bit_test -- ok")
+end
+
+local function getter_setter_16bit_test()
+    local bv32 = bitvector32.new
+    local b = bv32(-1 << 15)
+    assert(b:get_uint16(0) == 0x8000)
+    assert(b:get_uint16(1) == 0xffff)
+    b:set_uint16(1, 0x40)
+    assert(b:get_uint16(1) == 0x40)
+    print("  getter_setter_16bit_test -- ok")
+end
+
+local function core_resource_test()
+    if not CORE_ENV then
+        print("  core_resource_test -- SKIPPED")
+        return
+    end
     local bv32 = bitvector32.new
     if Environment.IsPreview() and Environment.IsServer() then
-        while #Game.GetPlayers() == 0 do Task.Wait() end
+        while #Game.GetPlayers() == 0 do
+            Task.Wait()
+        end
         local PLAYER = Game.GetPlayers()[1]
         local TEST_KEY = "<$TestKey$>"
         -- NOTE: all Core APIs will convert uint32 to int32
@@ -283,13 +344,15 @@ local function _bitvector32_core_resource_test()
         pdata[TEST_KEY] = nil
         Storage.SetPlayerData(PLAYER, pdata)
     end
-    print("  bitvector32_core_resource_test -- ok")
+    print("  core_resource_test -- ok")
 end
 
 local function self_test()
     print("[bitvector32]")
     basic_test()
-    _bitvector32_core_resource_test()
+    getter_setter_8bit_test()
+    getter_setter_16bit_test()
+    core_resource_test()
 end
 self_test()
 

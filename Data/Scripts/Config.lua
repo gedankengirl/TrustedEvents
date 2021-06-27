@@ -2,20 +2,20 @@
     A very simple module for handling read-only key-value configuration files.
 ]]
 
-local config = {}
-config.__index = config
+local Config = {}
+Config.__index = Config
 
-function config.__newindex()
+function Config.__newindex()
     return error("configs are read-only", 2)
 end
 
-function config.new(defaults)
+function Config.New(defaults)
     defaults = defaults or {}
-    return setmetatable(defaults, config)
+    return setmetatable(defaults, Config)
 end
 
 -- override
-function config:__call(values)
+function Config:__call(values)
     values = values or {}
     -- shallow copy
     for k, v in pairs(self) do
@@ -23,10 +23,10 @@ function config:__call(values)
             values[k] = v
         end
     end
-    return setmetatable(values, config)
+    return setmetatable(values, Config)
 end
 
-function config:__tostring()
+function Config:__tostring()
     local out = {}
     for k, v in pairs(self) do
         out[#out + 1] = string.format("  %s = %s,", k, v)
@@ -36,4 +36,4 @@ function config:__tostring()
     return "{\n".. table.concat(out, "\n")
 end
 
-return config
+return Config

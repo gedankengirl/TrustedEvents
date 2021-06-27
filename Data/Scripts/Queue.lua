@@ -57,3 +57,7 @@ local function test()
     print("queue -- ok")
 end
 test()
+
+
+-- modele
+return Queue
