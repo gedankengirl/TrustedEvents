@@ -5,7 +5,9 @@
     * 32-bit bitset that supports conversion from/to uint32 and int32.
     * Supports set/get bits with index `[i]` notation (i in [0, 31]).
     * Supports `extract` and `replace` bitfields (like in Lua 5.2).
---]] local getmetatable, setmetatable = getmetatable, setmetatable
+--]]
+
+local getmetatable, setmetatable = getmetatable, setmetatable
 local random, mathtype, tonumber = math.random, math.type, tonumber
 local rawget, type, pcall = rawget, type, pcall
 local assert, print, format, concat = assert, print, string.format, table.concat
@@ -13,7 +15,6 @@ local assert, print, format, concat = assert, print, string.format, table.concat
 -- for testing
 local CORE_ENV = CoreDebug and true
 local Environment, Game, Storage, Task = Environment, Game, Storage, Task
-local warn = warn or print
 
 _ENV = nil
 
