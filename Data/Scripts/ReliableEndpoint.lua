@@ -494,8 +494,10 @@ end
 local function self_test()
     print("[Reliable Endpoint]")
     test_loop(100, 0.0)
-    test_loop(100, 0.95)
+    test_loop(100, 0.5)
     if not CoreDebug then
+        test_loop(1000, 0.95)
+        test_loop(1000, 0.99)
         test_loop(10000, 0.0)
         test_loop(10000, 0.1)
         test_loop(10000, 0.5)

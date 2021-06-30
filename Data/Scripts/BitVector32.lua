@@ -29,6 +29,7 @@ function bitvector32.new(integer)
     integer = integer & 0xFFFFFFFF
     return setmetatable({_data = integer}, bitvector32)
 end
+bitvector32.New = bitvector32.new
 
 -- 0-based indices in [0, 31]
 function bitvector32:__index(i)
