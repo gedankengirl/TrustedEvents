@@ -1,8 +1,17 @@
 --[[
     A very simple module for handling read-only key-value configuration files.
+
+    * To create config:
+    ```
+    local config = Config { KEY=value, ... }
+    ```
+    * To override some values:
+    ```
+    local overrided = config { KEY=override, ... }
+    ```
 ]]
 
-local Config = {}
+local Config = {type = "Config"}
 Config.__index = Config
 
 function Config.__newindex()
@@ -15,17 +24,18 @@ function Config.New(defaults)
 end
 
 -- override
-function Config:__call(values)
-    values = values or {}
+function Config:__call(overrides)
+    overrides = overrides or {}
     -- shallow copy
     for k, v in pairs(self) do
-        if values[k] == nil then
-            values[k] = v
+        if overrides[k] == nil then
+            overrides[k] = v
         end
     end
-    return setmetatable(values, Config)
+    return setmetatable(overrides, Config)
 end
 
+-- dump
 function Config:__tostring()
     local out = {}
     for k, v in pairs(self) do

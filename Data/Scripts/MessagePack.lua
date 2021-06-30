@@ -1069,6 +1069,7 @@ do
     -----------------------------------
     local function core_types_test()
         if not CORE_ENV then
+            print("  core_types_test -- skipped")
             return
         end
         local core_data = {
@@ -1091,10 +1092,13 @@ do
         print("  core_types_test -- ok")
     end
 
-    local function test()
+    local function self_test()
         print("[lua-MessagePack]")
         core_types_test()
     end
+
+    -- run test
+    self_test()
 
     ---------------------------------------------
     -- Default serialization settings for Core

@@ -4,9 +4,9 @@
         https://github.com/Quenty/NevermoreEngine/blob/version2/Modules/Shared/Events/Maid.lua
     * Manages the cleaning of events and other things.
     * Useful for encapsulating state and make deconstructors easy.
-    * Adapted for Core by zoon (https://github.com/zoon).
+    * Adapted for Core by Andrew Zhilin (https://github.com/zoon).
     * Supports (and do all necessary checks for):
-        - regular callbacks (call them on Maid:Destroy())
+        - regular callbacks (will call them on Maid:Destroy())
         - CoreObject (:Destroy)
         - Events and Hooks (:Disconnect)
         - Tasks (:Cancel)
