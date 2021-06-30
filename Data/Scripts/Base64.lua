@@ -1,5 +1,5 @@
 --[[
-    Fast and memory conservative pure Lua Base64 encoder/decoder.
+    Fast, memory conservative, pure Lua Base64 encoder/decoder.
 ]]
 
 -- The MIT Licence (MIT)
@@ -94,7 +94,7 @@ local encode do
         return concat(out)
     end
 
-    -- there is no limiting quantifier support in lua pattens ...
+    -- there is no limiting quantifier support in lua patterns ...
     local OPT36 = "()" .. rep('.?', 36) .. "()"
     encode = function(data)
         _data = data -- pass data to outer scope
