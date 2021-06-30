@@ -1,5 +1,6 @@
 _ENV.require = _G.export or require
 
+-- Just test module loading, nothing interesting
 local Maid = assert(require("Maid"))
 local Base64 = assert(require("Base64"))
 local MessagePack = assert(require("MessagePack"))

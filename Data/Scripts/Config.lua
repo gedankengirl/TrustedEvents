@@ -26,7 +26,7 @@ end
 -- override
 function Config:__call(overrides)
     overrides = overrides or {}
-    -- shallow copy
+    -- NOTE: we don't mess with metatables, shallow copy FTW
     for k, v in pairs(self) do
         if overrides[k] == nil then
             overrides[k] = v

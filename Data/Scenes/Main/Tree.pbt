@@ -14,7 +14,7 @@ Objects {
       Z: 1
     }
   }
-  ChildIds: 16857209221953433243
+  ChildIds: 1842276021023141931
   ChildIds: 7367735074338159388
   ChildIds: 16813558807825262224
   ChildIds: 14713340454944924967
@@ -86,7 +86,6 @@ Objects {
   ParentId: 4781671109827199097
   UnregisteredParameters {
   }
-  WantsNetworking: true
   Collidable_v2 {
     Value: "mc:ecollisionsetting:inheritfromparent"
   }
@@ -755,8 +754,8 @@ Objects {
   }
 }
 Objects {
-  Id: 16857209221953433243
-  Name: "@RemoteEvents"
+  Id: 1842276021023141931
+  Name: "@TrustedEvents"
   Transform {
     Location {
     }
@@ -769,144 +768,6 @@ Objects {
     }
   }
   ParentId: 4781671109827199097
-  UnregisteredParameters {
-    Overrides {
-      Name: "cs:0x01"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x02"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x03"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x04"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x05"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x06"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x07"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x08"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x09"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x0A"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x0B"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x0C"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x0D"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x0E"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x0F"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x10"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0xFF"
-      String: ""
-    }
-    Overrides {
-      Name: "cs:0x01:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x02:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x03:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x04:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x05:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x06:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x07:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x08:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x09:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x0A:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x0B:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x0C:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x0D:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x0E:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x0F:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0x10:isrep"
-      Bool: true
-    }
-    Overrides {
-      Name: "cs:0xFF:isrep"
-      Bool: true
-    }
-  }
   Collidable_v2 {
     Value: "mc:ecollisionsetting:inheritfromparent"
   }
@@ -921,6 +782,6 @@ Objects {
   }
   Folder {
     IsFilePartition: true
-    FilePartitionName: "_RemoteEvents"
+    FilePartitionName: "_TrustedEvents"
   }
 }

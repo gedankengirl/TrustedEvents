@@ -1,4 +1,16 @@
 --[[
+    Implementation of "Selective Repeat Request" network protocol with some
+    variations and additions.
+
+    Reference: https://en.wikipedia.org/wiki/Selective_Repeat_ARQ
+
+    This implementation keeps on delivering messages orderly and reliably
+    even under severe (90%+) network packets loss.
+
+    This module can handle messages, packets and frames and provides callback
+    interface for physical network communications.
+
+    You can see a usage exmple in `TrustedEventsServer/TrustedEventsClient`.
 
 ]]
 
@@ -8,6 +20,20 @@ local Config = require("Config").New
 local Queue = require("Queue").New
 local BitVector32 = require("BitVector32").new
 local MessagePack = require("MessagePack")
+
+local ipairs, print, pcall, type = ipairs, print, pcall, type
+local assert, format, tostring = assert, string.format, tostring
+local mtype, random, min, max = math.type, math.random, math.min, math.max
+local setmetatable, concat, remove = setmetatable, table.concat, table.remove
+
+-- For testing:
+local CORE_ENV = CoreDebug and true
+--[[ uncomment this to add
+test variability
+math.randomseed(os.time())
+--]]
+
+_ENV = nil
 
 local NOOP = function() end
 
@@ -48,9 +74,9 @@ local H_BIT_UNRELIABLE = 7
 ---------------------------------------
 -- ACK SACK and NAK are commmon abbrevations for positive, selective and negative
 -- acknowledgment (ref: https://en.wikipedia.org/wiki/Retransmission_(data_networks)).
--- We acking at packet level, frame has no sequence.
+-- We acking at packet level, frame has no sequence number.
 -- SACK is a bitmap of (ack, ack+1....ack+15) i.e. with ACK we send next 15
--- in case we receive some out of order.
+-- in case we receive some packets out of order.
 
 ---------------------------------------
 -- Packets priority
@@ -58,12 +84,6 @@ local H_BIT_UNRELIABLE = 7
 -- * unreliable new
 -- * reliable resend
 -- * reliable new
-
-local ipairs, print, pcall, type, select = ipairs, print, pcall, type, select
-local assert, error, format = assert, error, string.format
-local pack, unpack, byte, char = string.pack, string.unpack, string.byte, string.char
-local mtype, random = math.type, math.random
-local tunpack = table.unpack
 
 ----------------------------------
 --- Debug
@@ -77,7 +97,7 @@ local function debug_frame(header, data, tag)
     for _, packet in ipairs(packets) do
         out[#out+1] = packet[1]
     end
-    local seq = table.concat(out, ", ")
+    local seq = concat(out, ", ")
     return format("[%s] seq:[%s] ack:%d", tag, seq, ack)
 end
 
@@ -226,7 +246,9 @@ function ReliableEndpoint:_Receive(header, data)
     local has_unreliable_packet = header32[H_BIT_UNRELIABLE]
     local ack, sack = header32:get_byte(1), header32:get_uint16(1)
 
-    -- handle ack by acking all packets before
+    -------------------------
+    -- handle ack
+    -------------------------
     while _between_seq(self.ack_expected, ack, self.next_to_send) do
         -- TODO: calculate packet RTT
         -- remove acked packet from buffer
@@ -237,8 +259,10 @@ function ReliableEndpoint:_Receive(header, data)
         self.ack_expected = _inc_seq(self.ack_expected)
     end
 
+    -------------------------
     -- handle sack
-    -- TODO: do something useful with NACKs (0-s) too.
+    -------------------------
+    -- TODO: do something useful with NACKs too.
     -- remove out of order acked packets from window (we will never resend it)
     local cursor = ack
     for i = 0, MAX_SACK do
@@ -249,14 +273,15 @@ function ReliableEndpoint:_Receive(header, data)
         end
         cursor = _inc_seq(cursor)
     end
-
+    -------------------------
     -- handle data
+    -------------------------
     local packets = MessagePack.decode(data)
     assert(type(packets) == "table")
 
     -- unreliable packet
     if has_unreliable_packet then
-        local unreliable = table.remove(packets)
+        local unreliable = remove(packets)
         assert(unreliable)
         for _, message in ipairs(unreliable) do
             self.receive_queue:Push(message)
@@ -269,9 +294,10 @@ function ReliableEndpoint:_Receive(header, data)
     end
 
     for _, packet in ipairs(packets) do
-        -- FIXME: review
+        -- TODO: review
         local seq = packet[1]
-        if _between_seq(self.packet_expected, seq, self.in_too_far) and not self.in_buffer[seq % WINDOW_SIZE] then
+        local not_buffered = not self.in_buffer[seq % WINDOW_SIZE]
+        if not_buffered and _between_seq(self.packet_expected, seq, self.in_too_far) then
             self.in_buffer[seq % WINDOW_SIZE] = packet
             while self.in_buffer[self.packet_expected % WINDOW_SIZE] do
                 local idx = self.packet_expected % WINDOW_SIZE
@@ -289,6 +315,7 @@ function ReliableEndpoint:_Receive(header, data)
     end
     -- NOTE: we use the same queue and callback fo reliable and unreliable messages
     if not self.receive_queue:IsEmpty() then
+        -- Huzzah! We got some legit messages. Notify client.
         self.receive_callback(self.receive_queue)
     end
 end
@@ -322,7 +349,7 @@ function ReliableEndpoint:_TransmitFrame(time_now)
         if not message then
             break
         end
-        -- TODO: add `measure` method to MessagePack, that will not allocate
+        -- TODO: add `measure` method to MessagePack, that will not allocate string
         local encoded = MessagePack.encode(message)
         if unreliable_bytes + #encoded <= threshold then
             unreliable_packet[#unreliable_packet + 1] = self.unreliable_send_queue:Pop()
@@ -413,7 +440,7 @@ end
 local function test_loop(message_count, drop_rate, echo, config)
     config = config or DEFAULT_CONFIG
     drop_rate = drop_rate or 0.5
-    drop_rate = math.max(0, math.min(drop_rate, 0.999))
+    drop_rate = max(0, min(drop_rate, 0.999))
 
     local trace = echo and print or NOOP
 
@@ -445,7 +472,7 @@ local function test_loop(message_count, drop_rate, echo, config)
         end
     end
 
-    local context = {drop={}}
+    local context = {drop = {}}
     local ep1 = ReliableEndpoint.New(config, "A-")
     local ep2 = ReliableEndpoint.New(config, "-B")
     ep1:SetReceiveCallback(receive_message(ep1, context))
@@ -456,22 +483,22 @@ local function test_loop(message_count, drop_rate, echo, config)
     ep1:UnlockTransmission()
     ep2:UnlockTransmission()
 
-    math.randomseed(os.time())
 
-    local msize = config.MAX_REALIBLE_MESSAGE_SIZE
 
-    local DROP = drop_rate
+    local min_message_size = 8
+    local max_message_size = config.MAX_REALIBLE_MESSAGE_SIZE
+
     local time = 0.0
     local dt = 0.1
     local N = message_count
     for _ = 1, N do
-        assert(ep1:SendMessage(string.rep("1", math.random(8, config.MAX_REALIBLE_MESSAGE_SIZE))))
-        assert(ep2:SendMessage(string.rep("2", math.random(8, config.MAX_REALIBLE_MESSAGE_SIZE))))
+        assert(ep1:SendMessage(("1"):rep(random(min_message_size, max_message_size))))
+        assert(ep2:SendMessage(("2"):rep(random(min_message_size, max_message_size))))
     end
     local ticks = 0
     for i = 1, 100*N do
-        context.drop[ep1]  = math.random() < DROP
-        context.drop[ep2]  = math.random() < DROP
+        context.drop[ep1]  = random() < drop_rate
+        context.drop[ep2]  = random() < drop_rate
         ep1:Update(time)
         ep2:Update(time)
         time = time + dt
@@ -488,14 +515,16 @@ local function test_loop(message_count, drop_rate, echo, config)
     assert(context[ep1.id] == N)
     assert(context[ep2.id] == N)
 
-    print(format(" test loop N: %d\t drop rate: %2d %% \tticks: %d \t-- ok", N, (DROP*100)//1, ticks))
+    print(format(" test loop: Messages: %d\t drop rate: %2d %% \tticks: %d \t-- ok",
+        N, (drop_rate*100)//1, ticks))
 end
 
 local function self_test()
     print("[Reliable Endpoint]")
     test_loop(100, 0.0)
     test_loop(100, 0.5)
-    if not CoreDebug then
+    -- Core will not chew this
+    if not CORE_ENV then
         test_loop(1000, 0.95)
         test_loop(1000, 0.99)
         test_loop(10000, 0.0)
@@ -504,12 +533,14 @@ local function self_test()
         test_loop(10000, 0.7)
         test_loop(10000, 0.9)
     end
-    -- soack
-    -- test_loop(10000, 0.99, true)
+    -- soak
+    test_loop(1000, 0.99, true)
 end
 
 self_test()
 
 -- module
 ReliableEndpoint.DEFAULT_CONFIG = DEFAULT_CONFIG
+-- just some reserved, unique, short string
+ReliableEndpoint.READY = "<~READY!~>"
 return ReliableEndpoint
