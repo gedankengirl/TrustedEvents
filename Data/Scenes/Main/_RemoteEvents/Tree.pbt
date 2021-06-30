@@ -1203,6 +1203,12 @@ Objects {
       }
     }
     Overrides {
+      Name: "cs:Config"
+      AssetReference {
+        Id: 488210722089865437
+      }
+    }
+    Overrides {
       Name: "cs:Maid"
       AssetReference {
         Id: 16867799801641793617
@@ -1221,6 +1227,16 @@ Objects {
       }
     }
     Overrides {
+      Name: "cs:ReliableEndpoint"
+      AssetReference {
+        Id: 6379868446302775488
+      }
+    }
+    Overrides {
+      Name: "cs:AckAbility:tooltip"
+      String: "Module for sending  messages through the Ability"
+    }
+    Overrides {
       Name: "cs:Base64:tooltip"
       String: "Base64 encoding/decoding"
     }
@@ -1235,10 +1251,6 @@ Objects {
     Overrides {
       Name: "cs:MessagePack:tooltip"
       String: "MessagePack serialization with Core support"
-    }
-    Overrides {
-      Name: "cs:AckAbility:tooltip"
-      String: "Module for sending  messages through the Ability"
     }
     Overrides {
       Name: "cs:Queue:tooltip"
