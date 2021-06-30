@@ -50,7 +50,7 @@ local TRUSTED_EVENTS_HOST, ACK_ABILITY_POOL, CHANNELS, IN_USE do
     table.sort(CHANNELS, function(a, b) return tonumber(a) < tonumber(b) end)
     IN_USE = BitVector32.New()
     for i= 0, 31 do
-        IN_USE[i] = not CHANNELS[i] -- write true at all indices absent in CHANNELS
+        IN_USE[i] = not CHANNELS[i] -- write `true` at all indices absent in CHANNELS
     end
 end
 
@@ -58,7 +58,7 @@ end
 -- returns custom property name and designated ack ability
 local function _borrow_channel()
     local idx = IN_USE:find_and_swap(false)
-    assert(idx <= NUM_ACKS)
+    assert(idx > 0 and idx <= NUM_ACKS)
     return CHANNELS[idx], ACK_ABILITY_POOL[idx]
 end
 
@@ -86,6 +86,7 @@ PlayerConnection.__index = PlayerConnection
 function PlayerConnection.New(player)
     assert(player)
     local channel, ack_ability = _borrow_channel()
+    -- check that all preallocated abilities good for us
     AckAbility.check(ack_ability)
     local config = SERVER_CONFIG {NAME = channel}
     local self = setmetatable({}, PlayerConnection)
@@ -98,20 +99,20 @@ function PlayerConnection.New(player)
 
     -- endpoint
     self.endpoint = ReliableEndpoint.New(config, channel)
-    self.on_rcv_frame = self.endpoint:GetIncomingFrameCallback()
     self.endpoint:SetTransmitCallback(function (header, data)
         -- first 4 bits of header are reserved for the user, so we are putting
         -- a counter in it in order to fire networkedPropertyChangedEvent even
         -- for a non-unique string.
         header = header | (self.unique & ~(-1 << 4))
         self.unique = self.unique + 1
-        local packed = MessagePack.pack({header, data})
-        local encoded = Base64.encode(packed)
-        TRUSTED_EVENTS_HOST:SetNetworkedCustomProperty(self.channel, encoded)
+        local mpacked = MessagePack.pack({header, data})
+        -- networked custom properties are not tolerated for non-text strings
+        local b64str = Base64.encode(mpacked)
+        TRUSTED_EVENTS_HOST:SetNetworkedCustomProperty(self.channel, b64str)
     end)
 
     -- ack ability
-    self.ack_ability = ack_ability -- can be removed
+    self.ack_ability = ack_ability
     ack_ability.owner = player
     ack_ability.isEnabled = true
 
@@ -121,7 +122,7 @@ function PlayerConnection.New(player)
         -- wait for client ready ...
         if not header or data ~= ReliableEndpoint.READY then return end
         -- client ready! change event subscription (the old one will be disconnected)
-        self.maid.ability_sub = nil -- disconnects subscription, not necessary
+        self.maid.ability_sub = nil -- disconnects subscription (not necessary)
         -- connect endpoint and ability
         local on_receive_frame =  self.endpoint:GetIncomingFrameCallback()
         self.maid.ability_sub = ack_ability.readyEvent:Connect(function()
@@ -132,22 +133,13 @@ function PlayerConnection.New(player)
                 dtrace(data)
             end
         end)
-        -- now endpoint is ready to transmit
+        -- now endpoint is ready to transmit frames to client
         self.endpoint:UnlockTransmission()
     end)
-    local on_receive_frame =  self.endpoint:GetIncomingFrameCallback()
-    self.maid.ability_sub = ack_ability.readyEvent:Connect(function(_ability)
-        local header, data = AckAbility.read(self.ack_ability)
-        if header then
-            on_receive_frame(header, data)
-        else -- got garbage
-            dtrace(data)
-        end
-    end)
-    -- notify client about his channel
+    -- notify client about his channel (just put it's id to it's channel)
     TRUSTED_EVENTS_HOST:SetNetworkedCustomProperty(self.channel, player.id)
 
-    -- set clean-up
+    -- set clean-up on destroy
     self.maid:GiveTask(function () _free_channel(self.channel) end) -- will free ability too
 end
 
