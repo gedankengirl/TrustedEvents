@@ -1,7 +1,6 @@
 --[[
 
-    AckAbility: a toolkit that helps to abuse Ability for client-to-server
-    communications.
+    AckAbility: the toolkit that abuses Ability for client-to-server communications
     =========================================================================
 
     Core can *unreliably* replicate AbilityTarget several times a second.
@@ -9,7 +8,7 @@
     and up to 27-byte string (`data`). Another 3 bytes were used for
     error detection (CRC, data length).
 
-    The main reason for all these difficulties is to *acknowledge* incoming
+    The main reason for all these complexities is to *acknowledge* incoming
     packets to the server - hence the name. Acknowledging via `Events` will
     be sent too rarely and will exhaust the already very small rate limit.
     As a bonus, we can send some messages to the server via `data`.
@@ -22,11 +21,11 @@
     * Server:
         - ability.readyEvent:Connect(ability -> AckAbility.read(ability))
 
-    (!) Other schemes will not work or will interfere with other
+    (!) Other ways will not work or will interfere with other
         abilities or even with Core modals (like mounts).
     (!) The `Interrupt` should immediately follow `Activate` (no waiting).
     (!) Don't forget to turn off `AbilityPhaseSettings.isTargetDataUpdated`.
-    (!) Code was written with little-endian computer architecture in mind.
+    (!) The code was written with little-endian computer architecture in mind.
 
     Copyright (C) 2021 Andrew Zhilin (https://github.com/zoon)
     This is free and unencumbered software released into the public domain.
@@ -43,7 +42,7 @@ local CORE_ENV = CoreDebug and true
 local CHECK_FACING_MODE = AbilityFacingMode and AbilityFacingMode.NONE
 local Vector3, Rotation = Vector3, Rotation
 
--- just module, not a metatable
+-- just a module, not a metatable
 local AckAbility = {}
 
 _ENV = nil
@@ -60,7 +59,7 @@ local F32_PADDING_BYTE = 0x40
 
 -- locations in `AbilityTarget` where we will store our bytes
 -- NOTE: the code can also use `Rotation`, but it looks like the user-set
--- `OwnerMovementRotation` is not replicated to the server.
+-- `OwnerMovementRotation` is not replicated on the server.
 
 local DATA_VECTORS = {
     "AimPosition",
@@ -103,8 +102,8 @@ local crc8 do
     }
     -- @ crc8 :: data:str|int32|nil -> uint8
     -- returns the CRC of string or 32-bit integer, applied to the previous
-    -- CRC value, crc. If `data` is nil, then the other argument are
-    -- ignored, and the initial CRC (CRC of zero bytes), is returned.
+    -- CRC value, crc. If `data` is nil, then the other argument is
+    -- ignored, and the initial CRC (CRC of zero bytes) is returned.
     crc8 = function(data, crc)
         local INITIAL_CRC = 0x00
         if data == nil then return INITIAL_CRC end
@@ -130,7 +129,7 @@ end
 -- LuaFormatter on
 
 ---------------------------------------
--- Utils and data assessors
+-- Utils and data accessors
 ---------------------------------------
 
 -- getters and setters for property vectors and rotations
@@ -182,7 +181,7 @@ local function bytes_to_float(b0, b1, b2)
 end
 
 -- @ append :: array, max:int, values... -> true | false
--- appends *non falsy* values to array until #array <= max
+-- appends *non-falsy* values to array until #array <= max
 local function append(array, max, ...)
     if #array >= max then
         return true
@@ -209,12 +208,12 @@ end
 function AckAbility.check(ability)
     assert(ability and ability.type == "Ability")
     assert(ability.canBePrevented)
-    -- "nil" string: not a typo, merely weird value for `NONE` action binding
+    -- "nil" string: not a typo, merely a weird value for `NONE` action binding
     assert(not ability.actionBinding or ability.actionBinding == "nil")
     for _, phase in ipairs(PHASE_SETTINGS) do
         local setting = ability[phase]
         if phase:find("cast") then
-            -- not sure it's a necessary condition, but let it be
+            -- not sure if it's a necessary condition, but let it be
             assert(setting.duration >= 0.1)
         end
         assert(not setting.preventsOtherAbilities)
@@ -245,7 +244,7 @@ function AckAbility.read(ability)
             ok = ok and append(out, nbytes, float_to_bytes(y))
             ok = ok and append(out, nbytes, float_to_bytes(z))
             if #out == nbytes then
-                break -- we done
+                break -- we're done
             end
         end
         if not ok then
