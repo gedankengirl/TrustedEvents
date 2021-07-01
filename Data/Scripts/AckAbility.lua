@@ -263,7 +263,7 @@ end
 function AckAbility.write(ability, header, data)
     data = data or ""
     assert(ability and ability.type == "Ability", "first argument should be `Ability`")
-    assert(mtype(data) == "integer" and data >= -0x80000000 and data <= 0xffffffff,
+    assert(mtype(header) == "integer" and header >= -0x80000000 and header <= 0xffffffff,
         "header should be 32-bit integer")
     assert(data and type(data) == "string", "data should be a `string`")
     assert(#data <= MAX_DATA_BYTES, "data length exceeds MAX_DATA_BYTES")

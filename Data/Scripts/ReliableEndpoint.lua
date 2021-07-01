@@ -89,7 +89,7 @@ local H_BIT_UNRELIABLE = 7
 --- Debug
 ----------------------------------
 local function debug_frame(header, data, tag)
-    tag = tostring(tag or "frame")
+    tag = tostring(tag or "#")
     header = BitVector32(header)
     local ack = header:get_byte(1)
     local packets = MessagePack.decode(data)
@@ -98,7 +98,7 @@ local function debug_frame(header, data, tag)
         out[#out+1] = packet[1]
     end
     local seq = concat(out, ", ")
-    return format("[%s] seq:[%s] ack:%d", tag, seq, ack)
+    return format("[%s %.3f KB] | ack: %0.3d | seq:[%s]", tag, #data/1000, ack, seq)
 end
 
 ---------------------------------------
@@ -199,11 +199,9 @@ function ReliableEndpoint:UnlockTransmission()
     self.lock_transmission = false
 end
 
-
 function ReliableEndpoint:GetIncomingFrameCallback()
     return function(header, data) self:_Receive(header, data) end
 end
-
 
 function ReliableEndpoint:CanTransmit()
     return not self.lock_transmission and self.transmit_callback and self.out_buffered < WINDOW_SIZE
@@ -213,14 +211,15 @@ end
 function ReliableEndpoint:SendMessage(message, unrealible)
     assert(type(message) == "string")
     -- TODO: checks, size limits
+    local max
     if unrealible then
-        local max = self.config.MAX_UNREALIBLE_MESSAGE_SIZE
+        max = self.config.MAX_UNREALIBLE_MESSAGE_SIZE
         if #message > max then
             return false, format("[%s]: message size: %d bytes > max:%d bytes", self.id, #message, max)
         end
         self.unreliable_send_queue:Push(message)
     else
-        local max = self.config.MAX_REALIBLE_MESSAGE_SIZE
+        max = self.config.MAX_REALIBLE_MESSAGE_SIZE
         if #message > max then
             return false, format("[%s]: message size: %d bytes > max:%d sizes", self.id, #message, max)
         end
@@ -440,7 +439,7 @@ end
 local function test_loop(message_count, drop_rate, echo, config)
     config = config or DEFAULT_CONFIG
     drop_rate = drop_rate or 0.5
-    drop_rate = max(0, min(drop_rate, 0.999))
+    drop_rate = max(0, min(drop_rate, 0.99))
 
     local trace = echo and print or NOOP
 
@@ -459,7 +458,7 @@ local function test_loop(message_count, drop_rate, echo, config)
                 trace(endpoint.id, "~>> snd", debug_frame(header, data))
                 receive_frame(header, data)
             else
-                trace(endpoint.id, "X drop", debug_frame(header, data))
+                trace(endpoint.id, "-- drop", debug_frame(header, data))
             end
         end
     end
@@ -483,8 +482,6 @@ local function test_loop(message_count, drop_rate, echo, config)
     ep1:UnlockTransmission()
     ep2:UnlockTransmission()
 
-
-
     local min_message_size = 8
     local max_message_size = config.MAX_REALIBLE_MESSAGE_SIZE
 
@@ -496,7 +493,7 @@ local function test_loop(message_count, drop_rate, echo, config)
         assert(ep2:SendMessage(("2"):rep(random(min_message_size, max_message_size))))
     end
     local ticks = 0
-    for i = 1, 100*N do
+    for i = 1, 1000*N do
         context.drop[ep1]  = random() < drop_rate
         context.drop[ep2]  = random() < drop_rate
         ep1:Update(time)
@@ -515,14 +512,14 @@ local function test_loop(message_count, drop_rate, echo, config)
     assert(context[ep1.id] == N)
     assert(context[ep2.id] == N)
 
-    print(format(" test loop: Messages: %d\t drop rate: %2d %% \tticks: %d \t-- ok",
+    print(format(" test loop: Messages: %d\t drop rate: %2d %%\t ticks: %d\t-- ok",
         N, (drop_rate*100)//1, ticks))
 end
 
 local function self_test()
     print("[Reliable Endpoint]")
     test_loop(100, 0.0)
-    test_loop(100, 0.5)
+    test_loop(50, 0.5)
     -- Core will not chew this
     if not CORE_ENV then
         test_loop(1000, 0.95)
@@ -531,10 +528,10 @@ local function self_test()
         test_loop(10000, 0.1)
         test_loop(10000, 0.5)
         test_loop(10000, 0.7)
-        test_loop(10000, 0.9)
+        --[[ soak, use with caution
+        test_loop(1000000, 0.99, true)
+        --]]
     end
-    -- soak
-    test_loop(1000, 0.99, true)
 end
 
 self_test()

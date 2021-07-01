@@ -1,6 +1,6 @@
 local DEBUG = true
 --[[
-
+    Trusted Events Server
 ]]
 _ENV.require = _G.export or require
 
@@ -73,6 +73,7 @@ local function _free_channel(prop)
     local ability = ACK_ABILITY_POOL[idx]
     assert(ability)
     ability.owner = nil
+    ability.name = "AckAbility"
     ability.isEnabled = false
     ability.parent = TRUSTED_EVENTS_HOST
 end
@@ -85,20 +86,35 @@ PlayerConnection.__index = PlayerConnection
 
 function PlayerConnection.New(player)
     assert(player)
-    local channel, ack_ability = _borrow_channel()
-    -- check that all preallocated abilities good for us
-    AckAbility.check(ack_ability)
-    local config = SERVER_CONFIG {NAME = channel}
     local self = setmetatable({}, PlayerConnection)
     self.maid = Maid.New()
-    self.player = player.id
-
-    -- networked property
+    local channel, ack_ability = _borrow_channel()
+    local config = SERVER_CONFIG {NAME = channel}
     self.channel = channel
+
+    -- ack ability
+    -- check that all preallocated abilities good for us
+    AckAbility.check(ack_ability)
+    ack_ability.owner = player
+    ack_ability.isEnabled = true
+    -- notify client about his channel by renaming ability
+    ack_ability.name = player.id ..','..channel
+    self.ack_ability = ack_ability
+
+    self.player = player
     self.unique = 0
+    self.started = false
 
     -- endpoint
     self.endpoint = ReliableEndpoint.New(config, channel)
+
+    -- set clean-up on destroy
+    self.maid:GiveTask(function () _free_channel(self.channel) end) -- will free ability too
+    return self
+end
+
+function PlayerConnection:StartEndpoint()
+    if self.started then return end
     self.endpoint:SetTransmitCallback(function (header, data)
         -- first 4 bits of header are reserved for the user, so we are putting
         -- a counter in it in order to fire networkedPropertyChangedEvent even
@@ -110,37 +126,29 @@ function PlayerConnection.New(player)
         local b64str = Base64.encode(mpacked)
         TRUSTED_EVENTS_HOST:SetNetworkedCustomProperty(self.channel, b64str)
     end)
-
-    -- ack ability
-    self.ack_ability = ack_ability
-    ack_ability.owner = player
-    ack_ability.isEnabled = true
-
-    -- rudimentary connection state machine
-    self.maid.ability_sub = ack_ability.readyEvent:Connect(function()
+    -- connect endpoint and ability
+    local on_receive_frame =  self.endpoint:GetIncomingFrameCallback()
+    self.maid.ability_sub = self.ack_ability.readyEvent:Connect(function()
         local header, data = AckAbility.read(self.ack_ability)
-        -- wait for client ready ...
-        if not header or data ~= ReliableEndpoint.READY then return end
-        -- client ready! change event subscription (the old one will be disconnected)
-        self.maid.ability_sub = nil -- disconnects subscription (not necessary)
-        -- connect endpoint and ability
-        local on_receive_frame =  self.endpoint:GetIncomingFrameCallback()
-        self.maid.ability_sub = ack_ability.readyEvent:Connect(function()
-            header, data = AckAbility.read(self.ack_ability)
-            if header then
-                on_receive_frame(header, data)
-            else -- got garbage
-                dtrace(data)
-            end
-        end)
-        -- now endpoint is ready to transmit frames to client
-        self.endpoint:UnlockTransmission()
+        if header then
+            on_receive_frame(header, data)
+        else -- got garbage
+            dtrace(data)
+        end
     end)
-    -- notify client about his channel (just put it's id to it's channel)
-    TRUSTED_EVENTS_HOST:SetNetworkedCustomProperty(self.channel, player.id)
 
-    -- set clean-up on destroy
-    self.maid:GiveTask(function () _free_channel(self.channel) end) -- will free ability too
+    -- endpoint update loop
+    self.maid.update_loop = Task.Spawn(function()
+        local now = time()
+        self.endpoint:Update(now)
+    end)
+    self.maid.update_loop.repeatCount = -1
+    self.maid.update_loop.repeatInterval = SERVER_TICK
+
+    -- now endpoint is ready to transmit frames to client
+    self.endpoint:UnlockTransmission()
+
+    dwarn("Endpoint activated: " .. self.endpoint.id)
 end
 
 function PlayerConnection:Destroy()
@@ -149,22 +157,52 @@ function PlayerConnection:Destroy()
 end
 
 ---------------------------------------
---Truste Events Server
+--Trusted Events Server
 ---------------------------------------
-local TrustedEventsServer = {type = "TrustedEventsServer"}
-TrustedEventsServer.__index = TrustedEventsServer
+local TrustedEventsServer = {}
+
+-- Global method that mimics `Events.BroadcastToPlayer`
+function _G.TEBroadcastToPayer(player, eventName, ...)
+    assert(player and player:IsA("Player"))
+    assert(eventName and type(eventName) == "string")
+    TrustedEventsServer:BroadcastToPlayer(player, eventName, ...)
+end
+
+function TrustedEventsServer:BroadcastToPlayer(player, eventName, ...)
+    local connection = self.playerConnections[player]
+    assert(connection)
+    local message = MessagePack.encode({eventName = eventName, ...})
+    connection.endpoint:SendMessage(message)
+end
 
 function TrustedEventsServer:Start()
-    self.maid = Maid.New()
+    self.maid = Maid.New(script)
     self.playerConnections = {}
-    self.maid.player_joined = Game.playerJoinedEvent:Connect(function(player) self:OnPlayerJoined(player) end)
-    self.maid.player_left = Game.playerLeftEvent:Connect(function(player) self:OnPlayerLeft(player) end)
+    self.maid.player_joined_sub = Game.playerJoinedEvent:Connect(function(player) self:OnPlayerJoined(player) end)
+    self.maid.player_left_sub = Game.playerLeftEvent:Connect(function(player) self:OnPlayerLeft(player) end)
+    self.maid.handshake_sub = Events.ConnectForPlayer(ReliableEndpoint.READY, function (player)
+        local connection = self.playerConnections[player]
+        if connection then
+            connection:StartEndpoint()
+        end
+    end)
     warn("INFO: [TrustedEventsServer] -- START")
 end
 
 function TrustedEventsServer:OnPlayerJoined(player)
     if self.playerConnections[player] then return end
     self.playerConnections[player] = PlayerConnection.New(player)
+
+    if DEBUG then -- send 100 events to player
+        local pretty_big_string = ("0"):rep(128)
+        for i = 1, 100 do
+            TrustedEventsServer:BroadcastToPlayer(player,
+            "TE_TEST_EVENT",
+            i,
+            Vector4.New(i, i, i, i),
+             pretty_big_string)
+        end
+    end
 end
 
 function TrustedEventsServer:OnPlayerLeft(player)

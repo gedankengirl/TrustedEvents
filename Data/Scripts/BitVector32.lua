@@ -308,7 +308,8 @@ local function getter_setter_16bit_test()
 end
 
 local function core_resource_test()
-    if not CORE_ENV then
+    -- NOTE: this test may take a long time when starting the game, be careful.
+    if not CORE_ENV or not Environment.IsPreview() then
         print("  core_resource_test -- SKIPPED")
         return
     end
@@ -354,7 +355,6 @@ local function self_test()
     basic_test()
     getter_setter_8bit_test()
     getter_setter_16bit_test()
-    core_resource_test()
 end
 self_test()
 
