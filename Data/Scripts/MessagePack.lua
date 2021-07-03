@@ -3,9 +3,17 @@
 --
 --[[
     lua-MessagePack (MP) Core extensions:
-    * @ MP.encode :: data -> str(MP)
-        is an alias for MP.pack
-    * MP.decode :: str(MP)[, from=1][, to=#str(MP)] -> data
+
+    * An alias for MP.pack with *measure* option.
+      Returns MessagePack serialized string. With truthy `measure` option
+      returns length of serialized string instead.
+    @ MP.encode :: data[, measure=nil]-> str(MP)
+
+    * An alias for MP.unpack with interval and "no throw" option.
+      Returns message pack encoded string or throw error. The `no_throw`
+      option gives you opportunity to return `nil` insted of throw error.
+    @ MP.decode :: str(MP)[, from=1][, to=#str(MP)] -> data
+
     * Support for Core types (through MessagePack `ext`):
         - CoreObjectReference (via CoreObjectReferenceProxy)
         - Color
@@ -24,8 +32,9 @@
     ```
         local mp = require("XXXXXXXX:MessagePack") -- Core style MUID require
 
-        local data = {tag="TestData", Vector2.New(10, 20), Vector3.ONE, Color.CYAN}
-        local encoded = mp.encode(data) -- => string 33 bytes
+        -- Feed it with any lua (no function, of course) or supported Core values:
+        local data = {tag = "TestData", Vector2.New(10, 20), Vector3.ONE, Color.CYAN}
+        local encoded = mp.encode(data)    -- => string 33 bytes
         local decoded = mp.decode(encoded) -- => {tag="TestData", Vector2(10, 20), Vector3.ONE, Color.CYAN}
     ```
 
@@ -385,43 +394,10 @@ packers['ext'] = function (buffer, tag, data)
     buffer[#buffer+1] = data
 end
 
-do -- adds *measure* option to `m.pack`
-    -- NOTE: this is "measure" lite - fast but still allocates. For hardcore
-    -- version put `local char, pack = buffer.char, buffer.pack`
-    -- in the first line of every `packers[xxx]` function. Memory allocation
-    -- will be near-zero, but `pack` will be 10-20% slower.
-    local measure_buffer_mt = {}
-    measure_buffer_mt.__index = measure_buffer_mt
-
-    function measure_buffer_mt.char(...)
-        return select("#", ...)
-    end
-
-    measure_buffer_mt.pack = packsize
-
-    function measure_buffer_mt:__newindex(_, v)
-        self.length = self.length + (type(v) == "number" and v or #v)
-    end
-
-    function measure_buffer_mt:__call()
-        local length = self.length
-        self.length = 0
-        return length
-    end
-
-    local measure_buffer = setmetatable({length = 0}, measure_buffer_mt)
-
-    -- slightly changed m.pack that supports `measure` option (string.packsize analog)
-    -- @ m.pack :: data[, measure=nil] -> string | integer
-    function m.pack(data, measure)
-        local buffer = not measure and {char = char, pack = pack} or measure_buffer
-        packers[type(data)](buffer, data)
-        if not measure then
-            return tconcat(buffer)
-        else
-            return buffer()
-        end
-    end
+function m.pack (data)
+    local buffer = {}
+    packers[type(data)](buffer, data)
+    return tconcat(buffer)
 end
 
 local unpackers         -- forward declaration
@@ -573,9 +549,10 @@ local function unpack_int64 (c)
     return unpack('>i8', s, i)
 end
 
-function m.build_ext (tag, data)
-    return nil
-end
+-- we will define it lower ...
+-- function m.build_ext (tag, data)
+--     return nil
+-- end
 
 local function unpack_ext (c, n, tag)
     local s, i, j = c.s, c.i, c.j
@@ -734,13 +711,50 @@ m._COPYRIGHT = "Copyright (c) 2012-2019 Francois Perrad"
 -- Copyright (c) 2021 Andrew Zhilin (https://github.com/zoon)
 ----------------------------------------------------------------------------
 do
-    m.encode = m.pack
+    -- NOTE: this is "measure" lite - fast but still allocates. For hardcore
+    -- version put `local char, pack = buffer.char, buffer.pack`
+    -- in the first line of every `packers[xxx]` function. Pass `char`
+    -- `select("#, ...)` instead of `char` and packsize instead of `pack`
+    -- Memory allocationwill be near-zero, but encoding will be 10-20% slower.
+    local measure_buffer do
+        local measure_buffer_mt = {}
+        measure_buffer_mt.__index = measure_buffer_mt
 
-    local MP_NIL = char(0xC0) -- nil
-    local function _mp_nil() return MP_NIL end
+        function measure_buffer_mt:__newindex(_, v)
+            self.length = self.length + #v
+        end
 
-    m.decode = function(s, from, to)
-        local c = cursor_loader(_mp_nil)
+        function measure_buffer_mt:__call()
+            local length = self.length
+            self.length = 0
+            return length
+        end
+        -- assign forward declaration
+        measure_buffer = setmetatable({length = 0}, measure_buffer_mt)
+    end
+
+    -- An alias for MP.pack with *measure* option
+    -- @ encode :: data[, measure] -> str
+    -- returns MessagePack serialized string
+    -- with truthy `measure` option returns length of serialized string instead.
+    m.encode = function(data, measure)
+        if not measure then
+            return m.pack(data)
+        end
+        packers[type(data)](measure_buffer, data)
+        return measure_buffer()
+    end
+
+    local ENCODED_NIL = char(0xC0) -- nil
+    local function nil_looader() return ENCODED_NIL end
+    local function err_loader() return nil end
+
+    -- @ decode :: s:str[, from=1][, to=#s][, no_throw=nil] -> str | nil | error
+    -- data: MessagePack encoded string
+    -- returns message pack encoded string or throw error, `no_throw` option gives
+    -- you opportunity to return `nil` insted of error.
+    m.decode = function(s, from, to, no_throw)
+        local c = cursor_loader(no_throw and nil_looader or err_loader)
         c.s = s
         c.i = from or 1
         c.j = to or #s
@@ -1042,17 +1056,24 @@ do
     -----------------------------------
     local function test_measure()
 
-        assert(type(m.pack("hello", "measure")) == "number")
+        assert(type(m.encode("hello", "measure")) == "number")
 
         local data = {
-            0xf, 123, 1234, 1234567890, "hello", {1, "hello"},
+            0xf,
+            123,
+            1234,
+            1234567890,
+            "hello",
+            {1, "hello"},
             {1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, {1, 2, 3}},
-            3.14159265359, {3.14159265359}, {{{{{{0}}}}}}
+            3.14159265359,
+            {3.14159265359},
+            {{{{{{0}}}}}}
         }
         for i, v in pairs(data) do
-            assert(#m.pack(v) == m.pack(v, "measure"))
+            assert(#m.encode(v) == m.encode(v, "measure"), "#"..i)
         end
-        assert(#m.pack(data) == m.pack(data, "measure"))
+        assert(#m.encode(data) == m.encode(data, "measure"))
         print("  test_measure -- ok")
     end
 
@@ -1066,18 +1087,20 @@ do
             Vector3.New(1.1, 2.2, 3.3),
             Vector4.New(1.1, 2.2, 3.3, 4.4),
             Rotation.New(1.1, 2.2, 3.3),
-            Color.New(0, 127, 255, 100)
+            Color.New(0, 127, 255, 100),
         }
         for _, val in ipairs(core_data) do
             local p = m.encode(val)
             local v = m.decode(p)
             assert(v == val, tostring(val))
         end
+
         for _, val in pairs(EXT_CORE_CONST_DECODE) do
             local p = m.encode(val)
             local v = m.decode(p)
             assert(v == val, tostring(val))
         end
+
         print("  core_types_test -- ok")
     end
 
