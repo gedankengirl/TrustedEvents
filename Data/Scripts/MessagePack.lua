@@ -832,92 +832,105 @@ do
     local EXT_CORE_PLAYER_ID_STR = 6
     local EXT_CORE_OBJECT_REFERENCE_ID_64 = 7
     local EXT_CORE_OBJECT_REFERENCE_ID_STR = 8
-    local EXT_CORE_TYPE_LAST = 40
 
-    -- Core constants will be in [41 .. 127]
+    -- All Core constants will have tag=40 and data:DATA_CORE_CONST_XXX
+    local EXT_CORE_CONST = 40
+
+    -- Core constants will have Tag = 40 and data:DATA_CORE_CONST_XXX
     -- CoreObjectReference
-    local EXT_CORE_OBJECT_REFERENCE_NOT_ASSIGNED = 41
+    local DATA_CORE_CONST_REFERENCE_NOT_ASSIGNED = char(0)
+    -- 1..9 reserved
 
     -- Color
-    local EXT_CORE_COLOR_WHITE = 50
-    local EXT_CORE_COLOR_GRAY = 51
-    local EXT_CORE_COLOR_BLACK = 52
-    local EXT_CORE_COLOR_TRANSPARENT = 53
-    local EXT_CORE_COLOR_RED = 54
-    local EXT_CORE_COLOR_GREEN = 55
-    local EXT_CORE_COLOR_BLUE = 56
-    local EXT_CORE_COLOR_CYAN = 57
-    local EXT_CORE_COLOR_MAGENTA = 58
-    local EXT_CORE_COLOR_YELLOW = 59
-    local EXT_CORE_COLOR_ORANGE = 60
-    local EXT_CORE_COLOR_PURPLE = 61
-    local EXT_CORE_COLOR_BROWN = 62
-    local EXT_CORE_COLOR_PINK = 63
-    local EXT_CORE_COLOR_TAN = 64
-    local EXT_CORE_COLOR_RUBY = 65
-    local EXT_CORE_COLOR_EMERALD = 66
-    local EXT_CORE_COLOR_SAPPHIRE = 67
-    local EXT_CORE_COLOR_SILVER = 68
-    local EXT_CORE_COLOR_SMOKE = 69
+    local DATA_CORE_CONST_COLOR_WHITE = char(10)
+    local DATA_CORE_CONST_COLOR_GRAY = char(11)
+    local DATA_CORE_CONST_COLOR_BLACK = char(12)
+    local DATA_CORE_CONST_COLOR_TRANSPARENT = char(13)
+    local DATA_CORE_CONST_COLOR_RED = char(14)
+    local DATA_CORE_CONST_COLOR_GREEN = char(15)
+    local DATA_CORE_CONST_COLOR_BLUE = char(16)
+    local DATA_CORE_CONST_COLOR_CYAN = char(17)
+    local DATA_CORE_CONST_COLOR_MAGENTA = char(18)
+    local DATA_CORE_CONST_COLOR_YELLOW = char(19)
+    local DATA_CORE_CONST_COLOR_ORANGE = char(20)
+    local DATA_CORE_CONST_COLOR_PURPLE = char(21)
+    local DATA_CORE_CONST_COLOR_BROWN = char(22)
+    local DATA_CORE_CONST_COLOR_PINK = char(23)
+    local DATA_CORE_CONST_COLOR_TAN = char(24)
+    local DATA_CORE_CONST_COLOR_RUBY = char(25)
+    local DATA_CORE_CONST_COLOR_EMERALD = char(26)
+    local DATA_CORE_CONST_COLOR_SAPPHIRE = char(27)
+    local DATA_CORE_CONST_COLOR_SILVER = char(28)
+    local DATA_CORE_CONST_COLOR_SMOKE = char(29)
+    -- 30 .. 39 reserved
 
     -- Vector2
-    local EXT_CORE_VECTOR2_ONE = 80
-    local EXT_CORE_VECTOR2_ZERO = 81
+    local DATA_CORE_CONST_VECTOR2_ONE = char(40)
+    local DATA_CORE_CONST_VECTOR2_ZERO = char(41)
+    -- 42 .. 49 reserved
 
     -- Vector3
-    local EXT_CORE_VECTOR3_ONE = 90
-    local EXT_CORE_VECTOR3_ZERO = 91
-    local EXT_CORE_VECTOR3_FORWARD = 92
-    local EXT_CORE_VECTOR3_UP = 93
-    local EXT_CORE_VECTOR3_RIGHT = 94
+    local DATA_CORE_CONST_VECTOR3_ONE = char(51)
+    local DATA_CORE_CONST_VECTOR3_ZERO = char(52)
+    local DATA_CORE_CONST_VECTOR3_FORWARD = char(53)
+    local DATA_CORE_CONST_VECTOR3_UP = char(54)
+    local DATA_CORE_CONST_VECTOR3_RIGHT =char(55)
+    -- 56 .. 59 reserved
 
     -- Vector4
-    local EXT_CORE_VECTOR4_ONE = 100
-    local EXT_CORE_VECTOR4_ZERO = 101
+    local DATA_CORE_CONST_VECTOR4_ONE = char(60)
+    local DATA_CORE_CONST_VECTOR4_ZERO = char(61)
+    -- 62 .. 69 reserved
 
     -- Rotation
-    local EXT_CORE_ROTATION_ZERO = 110
+    local DATA_CORE_CONST_ROTATION_ZERO = char(70)
+    -- 71 .. 79 reserved
+    -- 80 .. 255 free
 
-    -- Core constants lookup table {ext_tag -> Core Constant}
-    local EXT_CORE_CONST_DECODE = not CORE_ENV and {} or {
-        [EXT_CORE_OBJECT_REFERENCE_NOT_ASSIGNED] = CoreObjectReferenceProxy.New(nil),
-        [EXT_CORE_COLOR_WHITE] = Color.WHITE,
-        [EXT_CORE_COLOR_GRAY] = Color.GRAY,
-        [EXT_CORE_COLOR_BLACK] = Color.BLACK,
-        [EXT_CORE_COLOR_TRANSPARENT] = Color.TRANSPARENT,
-        [EXT_CORE_COLOR_RED] = Color.RED,
-        [EXT_CORE_COLOR_GREEN] = Color.GREEN,
-        [EXT_CORE_COLOR_BLUE] = Color.BLUE,
-        [EXT_CORE_COLOR_CYAN] = Color.CYAN,
-        [EXT_CORE_COLOR_MAGENTA] = Color.MAGENTA,
-        [EXT_CORE_COLOR_YELLOW] = Color.YELLOW,
-        [EXT_CORE_COLOR_ORANGE] = Color.ORANGE,
-        [EXT_CORE_COLOR_PURPLE] = Color.PURPLE,
-        [EXT_CORE_COLOR_BROWN] = Color.BROWN,
-        [EXT_CORE_COLOR_PINK] = Color.PINK,
-        [EXT_CORE_COLOR_TAN] = Color.TAH,
-        [EXT_CORE_COLOR_RUBY] = Color.RUBY,
-        [EXT_CORE_COLOR_EMERALD] = Color.EMERALD,
-        [EXT_CORE_COLOR_SAPPHIRE] = Color.SAPPHIRE,
-        [EXT_CORE_COLOR_SILVER] = Color.SILVER,
-        [EXT_CORE_COLOR_SMOKE] = Color.SMOKE,
-        [EXT_CORE_VECTOR2_ONE] = Vector2.ONE,
-        [EXT_CORE_VECTOR2_ZERO] = Vector2.ZERO,
-        [EXT_CORE_VECTOR3_ONE] = Vector3.ONE,
-        [EXT_CORE_VECTOR3_ZERO] = Vector3.ZERO,
-        [EXT_CORE_VECTOR3_FORWARD] = Vector3.FORWARD,
-        [EXT_CORE_VECTOR3_UP] = Vector3.UP,
-        [EXT_CORE_VECTOR3_RIGHT] = Vector3.RIGHT,
-        [EXT_CORE_VECTOR4_ONE] = Vector4.ONE,
-        [EXT_CORE_VECTOR4_ZERO] = Vector4.ZERO,
-        [EXT_CORE_ROTATION_ZERO] = Rotation.ZERO
+    -- Core constants lookup table {data -> Core Constant}
+    local CORE_CONST_DECODE = not CORE_ENV and {} or {
+        [DATA_CORE_CONST_REFERENCE_NOT_ASSIGNED] = CoreObjectReferenceProxy.New(nil),
+
+        [DATA_CORE_CONST_COLOR_WHITE] = Color.WHITE,
+        [DATA_CORE_CONST_COLOR_GRAY] = Color.GRAY,
+        [DATA_CORE_CONST_COLOR_BLACK] = Color.BLACK,
+        [DATA_CORE_CONST_COLOR_TRANSPARENT] = Color.TRANSPARENT,
+        [DATA_CORE_CONST_COLOR_RED] = Color.RED,
+        [DATA_CORE_CONST_COLOR_GREEN] = Color.GREEN,
+        [DATA_CORE_CONST_COLOR_BLUE] = Color.BLUE,
+        [DATA_CORE_CONST_COLOR_CYAN] = Color.CYAN,
+        [DATA_CORE_CONST_COLOR_MAGENTA] = Color.MAGENTA,
+        [DATA_CORE_CONST_COLOR_YELLOW] = Color.YELLOW,
+        [DATA_CORE_CONST_COLOR_ORANGE] = Color.ORANGE,
+        [DATA_CORE_CONST_COLOR_PURPLE] = Color.PURPLE,
+        [DATA_CORE_CONST_COLOR_BROWN] = Color.BROWN,
+        [DATA_CORE_CONST_COLOR_PINK] = Color.PINK,
+        [DATA_CORE_CONST_COLOR_TAN] = Color.TAH,
+        [DATA_CORE_CONST_COLOR_RUBY] = Color.RUBY,
+        [DATA_CORE_CONST_COLOR_EMERALD] = Color.EMERALD,
+        [DATA_CORE_CONST_COLOR_SAPPHIRE] = Color.SAPPHIRE,
+        [DATA_CORE_CONST_COLOR_SILVER] = Color.SILVER,
+        [DATA_CORE_CONST_COLOR_SMOKE] = Color.SMOKE,
+
+        [DATA_CORE_CONST_VECTOR2_ONE] = Vector2.ONE,
+        [DATA_CORE_CONST_VECTOR2_ZERO] = Vector2.ZERO,
+
+        [DATA_CORE_CONST_VECTOR3_ONE] = Vector3.ONE,
+        [DATA_CORE_CONST_VECTOR3_ZERO] = Vector3.ZERO,
+        [DATA_CORE_CONST_VECTOR3_FORWARD] = Vector3.FORWARD,
+        [DATA_CORE_CONST_VECTOR3_UP] = Vector3.UP,
+        [DATA_CORE_CONST_VECTOR3_RIGHT] = Vector3.RIGHT,
+
+        [DATA_CORE_CONST_VECTOR4_ONE] = Vector4.ONE,
+        [DATA_CORE_CONST_VECTOR4_ZERO] = Vector4.ZERO,
+        [DATA_CORE_CONST_ROTATION_ZERO] = Rotation.ZERO
     }
 
     -- Core constant colors lookup table (Color -> EXT_CORE_COLOR_XXX)
-    local EXT_CORE_CONST_COLOR_ENCODE = {}
-    for tag, value in pairs(EXT_CORE_CONST_DECODE) do
+    local CORE_CONST_COLOR_ENCODE = {}
+    for data, value in pairs(CORE_CONST_DECODE) do
         if value.type == "Color" then
-            EXT_CORE_CONST_COLOR_ENCODE[value] = tag
+            CORE_CONST_COLOR_ENCODE[value] = data
         end
     end
 
@@ -927,7 +940,7 @@ do
     m.packers["userdata"] = function(buffer, udata)
         if udata.type == "CoreObjectReference" then
             if not udata.isAssigned then
-                m.packers.fixext1(buffer, EXT_CORE_OBJECT_REFERENCE_NOT_ASSIGNED)
+                m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_REFERENCE_NOT_ASSIGNED)
             else
                 local id = CoreString.Split(udata.id, ":")
                 local uid64 = tonumber(id, 16)
@@ -941,9 +954,9 @@ do
                 end
             end
         elseif udata.type == "Color" then
-            local tag = EXT_CORE_CONST_COLOR_ENCODE[udata]
-            if tag then
-                m.packers.fixext1(buffer, tag)
+            local data = CORE_CONST_COLOR_ENCODE[udata]
+            if data then
+                m.packers.fixext1(buffer, EXT_CORE_CONST, data)
             else
                 m.packers.fixext4(buffer, EXT_CORE_COLOR, pack("BBBB", udata.r, udata.g, udata.b, udata.a))
             end
@@ -965,37 +978,37 @@ do
             end
         elseif udata.type == "Rotation" then
             if udata == Rotation.ZERO then
-                m.packers.fixext1(buffer, EXT_CORE_ROTATION_ZERO)
+                m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_ROTATION_ZERO)
             else
                 m.packers.ext(buffer, EXT_CORE_ROTATION, pack("fff", udata.x, udata.y, udata.z))
             end
         elseif udata.type == "Vector2" then
             if udata == Vector2.ONE then
-                m.packers.fixext1(buffer, EXT_CORE_VECTOR2_ONE)
+                m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_VECTOR2_ONE)
             elseif udata == Vector2.ZERO then
-                m.packers.fixext1(buffer, EXT_CORE_VECTOR2_ZERO)
+                m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_VECTOR2_ZERO)
             else
                 m.packers.fixext8(buffer, EXT_CORE_VECTOR2, pack("ff", udata.x, udata.y))
             end
         elseif udata.type == "Vector3" then
             if udata == Vector3.ONE then
-                m.packers.fixext1(buffer, EXT_CORE_VECTOR3_ONE)
+                m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_VECTOR3_ONE)
             elseif udata == Vector3.ZERO then
-                m.packers.fixext1(buffer, EXT_CORE_VECTOR3_ZERO)
+                m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_VECTOR3_ZERO)
             elseif udata == Vector3.FORWARD then
-                m.packers.fixext1(buffer, EXT_CORE_VECTOR3_FORWARD)
+                m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_VECTOR3_FORWARD)
             elseif udata == Vector3.UP then
-                m.packers.fixext1(buffer, EXT_CORE_VECTOR3_UP)
+                m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_VECTOR3_UP)
             elseif udata == Vector3.RIGHT then
-                m.packers.fixext1(buffer, EXT_CORE_VECTOR3_RIGHT)
+                m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_VECTOR3_RIGHT)
             else
                 m.packers.ext(buffer, EXT_CORE_VECTOR3, pack("fff", udata.x, udata.y, udata.z))
             end
         elseif udata.type == "Vector4" then
             if udata == Vector4.ONE then
-                m.packers.fixext1(buffer, EXT_CORE_VECTOR4_ONE)
+                m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_VECTOR4_ONE)
             elseif udata == Vector4.ZERO then
-                m.packers.fixext1(buffer, EXT_CORE_VECTOR4_ZERO)
+                m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_VECTOR4_ZERO)
             else
                 m.packers.fixext16(buffer, EXT_CORE_VECTOR4, pack("ffff", udata.x, udata.y, udata.z, udata.w))
             end
@@ -1010,44 +1023,37 @@ do
     -- Core deserialization
     -----------------------------------
     m.build_ext = function(tag, data)
-        if tag <= EXT_CORE_TYPE_LAST then
-            if tag == EXT_CORE_VECTOR3 then
-                local x, y, z = unpack("fff", data)
-                return Vector3.New(x, y, z)
-            elseif tag == EXT_CORE_ROTATION then
-                local x, y, z = unpack("fff", data)
-                return Rotation.New(x, y, z)
-            elseif tag == EXT_CORE_COLOR then
-                local r, g, b, a = unpack("BBBB", data)
-                return Color.New(r, g, b, a)
-            elseif tag == EXT_CORE_VECTOR2 then
-                local x, y = unpack("ff", data)
-                return Vector2.New(x, y)
-            elseif tag == EXT_CORE_VECTOR4 then
-                local x, y, z, w = unpack("ffff", data)
-                return Vector4.New(x, y, z, w)
-            elseif tag == EXT_CORE_PLAYER_ID_128 then
-                local first, second = unpack("I8I8", data)
-                local id = format("%x%x", first, second)
-                return Game.FindPlayer(id)
-            elseif tag == EXT_CORE_PLAYER_ID_STR then
-                return Game.FindPlayer(data)
-            elseif tag == EXT_CORE_OBJECT_REFERENCE_ID_64 then
-                local uid64 = unpack("I8", data)
-                local muid = format("%X", uid64)
-                return CoreObjectReferenceProxy.New(muid)
-            elseif tag == EXT_CORE_OBJECT_REFERENCE_ID_STR then
-                return CoreObjectReferenceProxy.New(data)
-            else
-                error(format("unknown type extension tag: %d", tag))
-            end
-        end
-        if tag > EXT_CORE_TYPE_LAST then
-            local out = EXT_CORE_CONST_DECODE[tag]
-            if not out then
-                error(format("unknown constant tag: %d", tag))
-            end
-            return out
+        if tag == EXT_CORE_CONST then
+            return CORE_CONST_DECODE[data] or error(format("unknown DATA_CORE_CONST: %d", data))
+        elseif tag == EXT_CORE_VECTOR3 then
+            local x, y, z = unpack("fff", data)
+            return Vector3.New(x, y, z)
+        elseif tag == EXT_CORE_ROTATION then
+            local x, y, z = unpack("fff", data)
+            return Rotation.New(x, y, z)
+        elseif tag == EXT_CORE_COLOR then
+            local r, g, b, a = unpack("BBBB", data)
+            return Color.New(r, g, b, a)
+        elseif tag == EXT_CORE_VECTOR2 then
+            local x, y = unpack("ff", data)
+            return Vector2.New(x, y)
+        elseif tag == EXT_CORE_VECTOR4 then
+            local x, y, z, w = unpack("ffff", data)
+            return Vector4.New(x, y, z, w)
+        elseif tag == EXT_CORE_PLAYER_ID_128 then
+            local first, second = unpack("I8I8", data)
+            local id = format("%x%x", first, second)
+            return Game.FindPlayer(id)
+        elseif tag == EXT_CORE_PLAYER_ID_STR then
+            return Game.FindPlayer(data)
+        elseif tag == EXT_CORE_OBJECT_REFERENCE_ID_64 then
+            local uid64 = unpack("I8", data)
+            local muid = format("%X", uid64)
+            return CoreObjectReferenceProxy.New(muid)
+        elseif tag == EXT_CORE_OBJECT_REFERENCE_ID_STR then
+            return CoreObjectReferenceProxy.New(data)
+        else
+            error(format("unknown type extension tag: %d", tag))
         end
     end
 
@@ -1095,7 +1101,7 @@ do
             assert(v == val, tostring(val))
         end
 
-        for _, val in pairs(EXT_CORE_CONST_DECODE) do
+        for _, val in pairs(CORE_CONST_DECODE) do
             local p = m.encode(val)
             local v = m.decode(p)
             assert(v == val, tostring(val))
