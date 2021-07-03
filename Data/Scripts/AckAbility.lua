@@ -1,6 +1,6 @@
 --[[
 
-    AckAbility: the toolkit that abuses Ability for client-to-server communications
+    AckAbility: abuse Core Ability for client-to-server communications
     =========================================================================
 
     Core can *unreliably* replicate AbilityTarget several times a second.
@@ -15,11 +15,11 @@
 
     How to abuse Ability:
     * Client:
-        - ability.castEvent:Connect(ability -> AckAbility.write(ability, header, data))
-        - ability:Activate()
-        - ability:Interrupt()
+     - ability.castEvent:Connect(ability -> AckAbility.write(ability, header, data))
+     - ability:Activate()
+     - ability:Interrupt()
     * Server:
-        - ability.readyEvent:Connect(ability -> AckAbility.read(ability))
+     - ability.readyEvent:Connect(ability -> AckAbility.read(ability))
 
     (!) Other ways will not work or will interfere with other
         abilities or even with Core modals (like mounts).
@@ -133,8 +133,7 @@ end
 ---------------------------------------
 
 -- getters and setters for property vectors and rotations
-local XYZ_GETTERS, XYZ_SETTERS, MAX_DATA_BYTES
-do
+local XYZ_GETTERS, XYZ_SETTERS, MAX_DATA_BYTES do
     XYZ_GETTERS, XYZ_SETTERS = {}, {}
     for i, prop in ipairs(DATA_VECTORS) do
         if not CORE_ENV then
