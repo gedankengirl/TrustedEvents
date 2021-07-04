@@ -74,7 +74,7 @@ function TrustedEventsClient:Start()
         end
     end)
     --  endpoint setup
-    self.endpoint:SetTransmitCallback(function (header, data)
+    self.endpoint:SetTransmitFrameCallback(function (header, data)
         self.header = header
         self.data = data
         -- pure magic! (see AckAbility.lua)
@@ -82,7 +82,6 @@ function TrustedEventsClient:Start()
         self.ack_ability:Interrupt()
     end)
 
-    local on_receive_frame =  self.endpoint:GetIncomingFrameCallback()
     self.maid.channel_sub = TRUSTED_EVENTS_HOST.networkedPropertyChangedEvent:Connect(function(_, prop)
         if prop ~= self.channel then return end
         local str64 = TRUSTED_EVENTS_HOST:GetCustomProperty(self.channel)
@@ -104,7 +103,7 @@ function TrustedEventsClient:Start()
         local header = frame[1]
         local data = frame[2]
         -- TODO: pcall
-        on_receive_frame(header, data)
+        self.endpoint:OnReceiveFrame(header, data)
     end)
 
     self.maid.update_loop = Task.Spawn(function()
@@ -117,7 +116,7 @@ function TrustedEventsClient:Start()
 
     -- set how we handle received messages
     -- in this case we dispatch client local event with the same name
-    self.endpoint:SetReceiveCallback(function(queue)
+    self.endpoint:SetReceiveMessageCallback(function(queue)
         while not queue:IsEmpty() do
             local message = queue:Pop()
             local ok, val = pcall(MessagePack.decode, message)
@@ -126,6 +125,7 @@ function TrustedEventsClient:Start()
             elseif type(val) == "table" and val.eventName then
                 local event = val.eventName
                 val.eventName = nil
+                -- TODO: proper unpack(t, 1, t.n)
                 Events.Broadcast(event, table.unpack(val))
             else
                 dtrace(string.format("WARNING: server sent unknown message: %q", message))

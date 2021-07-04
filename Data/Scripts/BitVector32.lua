@@ -5,6 +5,8 @@
     * 32-bit bitset that supports conversion from/to uint32 and int32.
     * Supports set/get bits with index `[i]` notation (i in [0, 31]).
     * Supports `extract` and `replace` bitfields (like in Lua 5.2).
+
+    -- Copyright (c) 2021 Andrew Zhilin (https://github.com/zoon)
 --]]
 
 local getmetatable, setmetatable = getmetatable, setmetatable

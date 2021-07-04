@@ -38,7 +38,12 @@
         local decoded = mp.decode(encoded) -- => {tag="TestData", Vector2(10, 20), Vector3.ONE, Color.CYAN}
     ```
 
+    Core Extensions:
     Copyright (c) 2021 Andrew Zhilin (https://github.com/zoon)
+
+    lua-MessagePack:
+    Copyright (c) 2012-2019 Francois Perrad
+
 ]]
 -- luaFormatter off
 

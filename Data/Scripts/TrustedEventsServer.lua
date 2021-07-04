@@ -98,7 +98,7 @@ function PlayerConnection.New(player)
     ack_ability.owner = player
     ack_ability.isEnabled = true
     -- notify client about his channel by renaming ability
-    ack_ability.name = player.id ..','..channel
+    ack_ability.name = player.id ..','.. channel
     self.ack_ability = ack_ability
 
     self.player = player
@@ -115,7 +115,7 @@ end
 
 function PlayerConnection:StartEndpoint()
     if self.started then return end
-    self.endpoint:SetTransmitCallback(function (header, data)
+    self.endpoint:SetTransmitFrameCallback(function (header, data)
         -- first 4 bits of header are reserved for the user, so we are putting
         -- a counter in it in order to fire networkedPropertyChangedEvent even
         -- for a non-unique string.
@@ -127,11 +127,15 @@ function PlayerConnection:StartEndpoint()
         TRUSTED_EVENTS_HOST:SetNetworkedCustomProperty(self.channel, b64str)
     end)
     -- connect endpoint and ability
-    local on_receive_frame =  self.endpoint:GetIncomingFrameCallback()
     self.maid.ability_sub = self.ack_ability.readyEvent:Connect(function()
         local header, data = AckAbility.read(self.ack_ability)
         if header then
-            on_receive_frame(header, data)
+            local r = math.random()
+            if r < 0.5 then
+                dtrace("XXX drop frame")
+                return
+            end
+            self.endpoint:OnReceiveFrame(header, data)
         else -- got garbage
             dtrace(data)
         end
@@ -196,11 +200,7 @@ function TrustedEventsServer:OnPlayerJoined(player)
     if DEBUG then -- send 100 events to player
         local pretty_big_string = ("0"):rep(128)
         for i = 1, 100 do
-            TrustedEventsServer:BroadcastToPlayer(player,
-            "TE_TEST_EVENT",
-            i,
-            Vector4.New(i, i, i, i),
-             pretty_big_string)
+            TrustedEventsServer:BroadcastToPlayer(player, "TE_TEST_EVENT", i, Vector4.New(i, i, i, i), pretty_big_string)
         end
     end
 end
