@@ -6,13 +6,13 @@
 
     * An alias for MP.pack with *measure* option.
       Returns MessagePack serialized string. With truthy `measure` option
-      returns length of serialized string instead.
+      returns the length of serialized string instead.
     @ MP.encode :: data[, measure=nil]-> str(MP)
 
-    * An alias for MP.unpack with interval and "no throw" option.
-      Returns message pack encoded string or throw error. The `no_throw`
-      option gives you opportunity to return `nil` insted of throw error.
-    @ MP.decode :: str(MP)[, from=1][, to=#str(MP)] -> data
+    * An alias for MP.unpack with interval and "no throw" options. Returns
+      message pack encoded string or throw an error. The `no_throw` option
+      allows you to return `nil` instead of throwing an error.
+    @ MP.decode :: str(MP)[, from=1][, to=#str(MP)][, no_throw=nil] -> data
 
     * Support for Core types (through MessagePack `ext`):
         - CoreObjectReference (via CoreObjectReferenceProxy)
@@ -22,7 +22,7 @@
         - Vector2
         - Vector3
         - Vector4
-    (!) By default, all non-integer lua numbers will be serialized as double (64-bit).
+    (!) By default, all non-integer Lua numbers will be serialized as a double (64-bit).
         This option can be changed: `MP.set_number("float|double")`
         All Core's Vector-ish elements will be serialized as float 32.
     (!) Whenever possible, you should use constants (like Color.WHITE or Vector3.ONE) -
@@ -717,10 +717,10 @@ m._COPYRIGHT = "Copyright (c) 2012-2019 Francois Perrad"
 ----------------------------------------------------------------------------
 do
     -- NOTE: this is "measure" lite - fast but still allocates. For hardcore
-    -- version put `local char, pack = buffer.char, buffer.pack`
-    -- in the first line of every `packers[xxx]` function. Pass `char`
-    -- `select("#, ...)` instead of `char` and packsize instead of `pack`
-    -- Memory allocationwill be near-zero, but encoding will be 10-20% slower.
+    -- version put `local char, pack = buffer.char, buffer.pack` in the first
+    -- line of every `packers[xxx]` function. Pass `char` `select("#, ...)`
+    -- instead of `char` and packsize instead of `pack` Memory allocation will
+    -- be near-zero, but encoding will be 10-20% slower.
     local measure_buffer do
         local measure_buffer_mt = {}
         measure_buffer_mt.__index = measure_buffer_mt
@@ -754,10 +754,10 @@ do
     local function nil_looader() return ENCODED_NIL end
     local function err_loader() return nil end
 
-    -- @ decode :: s:str[, from=1][, to=#s][, no_throw=nil] -> str | nil | error
+    -- @ decode :: data:str[, from=1][, to=#s][, no_throw=nil] -> str | nil | error
     -- data: MessagePack encoded string
-    -- returns message pack encoded string or throw error, `no_throw` option gives
-    -- you opportunity to return `nil` insted of error.
+    -- Returns message pack encoded string or throw an error. The `no_throw`
+    -- option allows you to return `nil` instead of throwing an error.
     m.decode = function(s, from, to, no_throw)
         local c = cursor_loader(no_throw and nil_looader or err_loader)
         c.s = s
@@ -781,11 +781,11 @@ do
 
     function CoreObjectReferenceProxy:IsA(typeName) return typeName == self.type end
 
-    -- NOTE: `__eq` metamethod will be called only if both operands have the same
-    -- type, i.e. `userdata` and `table` will not work.
-    -- Since Lua 5.3, we can create `userdata` exclusively through the C API.
-    -- In other words, this `==` operator rather useless and intended only for
-    -- ease of writing tests.
+    -- NOTE: `__eq` metamethod will be called only if both operands have the
+    -- same type, i.e. `userdata` and `table` will not work. Since Lua 5.3, we
+    -- can create `userdata` exclusively through the C API. In other words,
+    -- this `==` operator rather useless and intended only for ease of writing
+    -- tests.
     function CoreObjectReferenceProxy:__eq(other)
         if CoreObjectReferenceProxy.type == other.type then
             return self.id == other.id
@@ -841,7 +841,7 @@ do
     -- All Core constants will have tag=40 and data:DATA_CORE_CONST_XXX
     local EXT_CORE_CONST = 40
 
-    -- Core constants will have Tag = 40 and data:DATA_CORE_CONST_XXX
+    -- Core constants will have Tag = EXT_CORE_CONST (40) and data:DATA_CORE_CONST_XXX
     -- CoreObjectReference
     local DATA_CORE_CONST_REFERENCE_NOT_ASSIGNED = char(0)
     -- 1..9 reserved

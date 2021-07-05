@@ -61,7 +61,7 @@ end
 -- Lua 5.2 `bit32.replace` (https://www.lua.org/manual/5.2/manual.html#pdf-bit32.replace)
 -- replace [i, i + width - 1] bits with value of `v`
 function bitvector32:replace(v, i, width)
-    assert(mathtype(v) == "integer")
+    assert(mathtype(v) == "integer", "value should be an integer")
     assert(width > 0)
     assert(i + width <= 32)
     local mask = ~(-1 << width)

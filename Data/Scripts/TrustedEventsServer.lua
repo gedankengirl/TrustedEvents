@@ -20,7 +20,7 @@ local SERVER_TICK = 0.2
 
 local SERVER_CONFIG = ReliableEndpoint.DEFAULT_CONFIG {
     -- put overrides here:
-    PACKET_RESEND_DELAY = 2 * SERVER_TICK,
+    PACKET_RESEND_DELAY = 3 * SERVER_TICK,
 }
 
 print("INFO: Trusted Events Server Configuration")
@@ -123,18 +123,18 @@ function PlayerConnection:StartEndpoint()
         self.unique = self.unique + 1
         local mpacked = MessagePack.pack({header, data})
         -- networked custom properties are not tolerated for non-text strings
-        local b64str = Base64.encode(mpacked)
+        local b64str
+        if math.random() < 0.0 then
+            b64str = Base64.encode("Push Sommme GApoapedipbage")
+        else
+            b64str = Base64.encode(mpacked)
+        end
         TRUSTED_EVENTS_HOST:SetNetworkedCustomProperty(self.channel, b64str)
     end)
     -- connect endpoint and ability
     self.maid.ability_sub = self.ack_ability.readyEvent:Connect(function()
         local header, data = AckAbility.read(self.ack_ability)
         if header then
-            local r = math.random()
-            if r < 0.5 then
-                dtrace("XXX drop frame")
-                return
-            end
             self.endpoint:OnReceiveFrame(header, data)
         else -- got garbage
             dtrace(data)

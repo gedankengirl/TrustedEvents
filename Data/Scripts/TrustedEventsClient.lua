@@ -1,4 +1,4 @@
-local DEBUG = true
+local DEBUG = false
 --[[
     Trusted Events Client
 ]]
@@ -13,7 +13,6 @@ local Base64 = require("Base64")
 local MessagePack = require("MessagePack")
 local AckAbility = require("AckAbility")
 
-local BitVector32 = require("BitVector32")
 local ReliableEndpoint = require("ReliableEndpoint")
 
 local TRUSTED_EVENTS_HOST = script:GetCustomProperty("TrustedEventsHost"):WaitForObject()
@@ -23,12 +22,13 @@ local CLIENT_TICK = 0.3
 
 local CLIENT_CONFIG = ReliableEndpoint.DEFAULT_CONFIG {
     -- put overrides here:
-    PACKET_RESEND_DELAY = 2 * CLIENT_TICK,
+    PACKET_RESEND_DELAY = 3 * CLIENT_TICK,
+    -- TODO: test them!
     MAX_UNREALIBLE_PACKET_SIZE = 24,
     MAX_UNREALIBLE_MESSAGE_SIZE = 22,
     MAX_REALIBLE_PACKET_SIZE = 24,
     MAX_REALIBLE_MESSAGE_SIZE = 22,
-    MAX_RELIABLE_PACKETS_PER_FRAME = 1,
+    MAX_RELIABLE_PACKETS = 1,
 }
 
 ---------------------------------------
@@ -95,9 +95,9 @@ function TrustedEventsClient:Start()
             return
         end
         ok, frame = pcall(MessagePack.decode, frame)
-        -- check for proper frame format: {heder:int32, data:str}
+        -- check for proper frame format: {header:int32, data:str}
         if not ok or type(frame) ~= "table" or #frame ~= 2 or math.type(frame[1]) ~= "integer" then
-            dwarn("not a proper frame ", str64) -- use original string for investigation
+            dwarn("not a proper frame: "..  str64) -- use original string for investigation
             return
         end
         local header = frame[1]
@@ -115,10 +115,11 @@ function TrustedEventsClient:Start()
     self.endpoint:UnlockTransmission()
 
     -- set how we handle received messages
-    -- in this case we dispatch client local event with the same name
+    -- in this case we dispatch client-local event with the same name
     self.endpoint:SetReceiveMessageCallback(function(queue)
         while not queue:IsEmpty() do
             local message = queue:Pop()
+            -- FIXME: why we ever encode messages? fix
             local ok, val = pcall(MessagePack.decode, message)
             if not ok then
                 dwarn(val)

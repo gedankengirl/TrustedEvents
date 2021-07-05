@@ -1,14 +1,16 @@
 --[[
-    _G.export: replacing Core `require` which can take the filename or MUID as an argument.
-    This is convenient since you no longer need to do custom properties or hardcode
-    MUID strings to export a module.
+    _G.export: replacing Core `require` which can take the filename or MUID as
+    an argument. This is convenient since you no longer need to do custom
+    properties or hardcode MUID strings to export a module.
 
     If you make `require` an alias of `_G.export` and export modules by name,
-    then they will continue to function correctly in the absence of Core - for example,
-    you can run tests in vanilla Lua 5.3, and not just in the editor.
+    then they will continue to function correctly in the absence of Core - for
+    example, you can run tests in vanilla Lua 5.3, and not just in the editor.
+
     ```lua
     -- begining of the script
     _ENV.require = _G.export or require
+
     ```
     TODO: FAQ
     - How to make "Module Container" by yourself.
@@ -19,9 +21,10 @@
 
 local EXPORT_DEPRECATED = false
 
--- This script must always be a child of the root container (in default or server context).
--- For client context you should create client context follder as a child of module container,
--- and add this script as a child to that folder.
+-- This script must always be a child of the root container (in default or
+-- server context). For client context you should create client context
+-- follder as a child of module container, and add this script as a child to
+-- that folder.
 local CONTAINER = Environment.IsClient() and script.parent.parent or script.parent
 
 local MODULES_G_KEY = "<~ Modules ~>"
@@ -45,7 +48,8 @@ local function get_muid(module_name)
     end
 end
 
--- Replacement for Core's `require`, works with MUID parameter or module name (like vanilla Lua).
+-- Replacement for Core's `require`, works with MUID parameter or module name
+-- like vanilla Lua.
 local function export(nameOrMuid)
     local muid = modules[nameOrMuid]
     if not muid then
