@@ -39,8 +39,6 @@ local dump_frame = NOOP
 _ENV = nil
 
 -- Constants
-local RTT_SMOOTH_FACTOR = 0.25
-local EPS_SQ = 0.001^2
 local MAX_SACK_BITS = 16
 local MAX_SEQ_BITS = 8
 
@@ -53,6 +51,15 @@ local MAX_SACK = min(MAX_SACK_BITS - 1, WINDOW_SIZE - 1)
 assert(SEQ_BITS <= MAX_SEQ_BITS)
 assert(WINDOW_SIZE <= MAX_WINDOW_SIZE)
 assert(WINDOW_SIZE & (WINDOW_SIZE - 1) == 0, "WINDOW_SIZE should be a power of 2")
+
+-- EMA (exponential moving average)
+local EMA_FACTOR = 2 / (100 + 1) -- window size = 100
+local EPSQ = 0.001^2
+local function ema(prev, val)
+    local d = val - prev
+    if prev == 0 or d*d < EPSQ then return val end
+    return d * EMA_FACTOR + prev
+end
 
 ---------------------------------------
 -- Header
@@ -284,9 +291,7 @@ function ReliableEndpoint:_OnReceiveFrame(header, data)
     -------------------------
     -- handle ack
     -------------------------
-    -- TODO: calculate packet RTT
     while _between_seq(self.ack_expected, ack, self.next_to_send) do
-
         -- remove acked packet from buffer
         local idx = self.ack_expected % WINDOW_SIZE
         local sent_time = self.sent_time[idx]
@@ -299,14 +304,7 @@ function ReliableEndpoint:_OnReceiveFrame(header, data)
         self.ack_expected = _inc_seq(self.ack_expected)
 
         -- calculate RTT
-        local rtt = self.gettime() - sent_time
-        local drtt = rtt - self.rtt
-        if self.rtt == 0 and rtt > 0 or drtt*drtt < EPS_SQ then
-            self.rtt = rtt
-        else
-            self.rtt = self.rtt + drtt * RTT_SMOOTH_FACTOR
-        end
-
+        self.rtt = ema(self.rtt, self.gettime() - sent_time)
     end
 
     -------------------------
@@ -653,9 +651,10 @@ local function self_test()
     -- Core won't be able to handle it
     if not CORE_ENV then
         test_loop(20, 0.5, "echo")
-        test_loop(1000, 0.5)
         test_loop(10000, 0.0)
+        test_loop(1000, 0.1)
         test_loop(10000, 0.1)
+        test_loop(100000, 0.1)
         test_loop(10000, 0.5)
         test_loop(10000, 0.95)
         ---[[ soak, use with caution
