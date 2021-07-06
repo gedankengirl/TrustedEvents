@@ -64,7 +64,7 @@ local unpack = string.unpack
 
 local ipairs = ipairs
 local tonumber, print = tonumber, print
-local HUGE = math.huge
+local BIG_TIMEOUT = 120
 local select = select
 local packsize = string.packsize
 
@@ -800,7 +800,7 @@ do
     end
 
     function CoreObjectReferenceProxy:WaitForObject(wait)
-        wait = wait or HUGE
+        wait = wait or BIG_TIMEOUT
         assert(type(wait) == "number")
         if not self.isAssigned then
             return nil
