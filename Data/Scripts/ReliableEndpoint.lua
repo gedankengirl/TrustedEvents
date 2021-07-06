@@ -28,6 +28,8 @@ local format, tostring, setmetatable = string.format, tostring, setmetatable
 local mtype, random, min, max = math.type, math.random, math.min, math.max
 local concat, remove = table.concat, table.remove
 local randomseed, os_time = math.randomseed, os.time
+local pcall = pcall
+
 
 local NOOP = function() end
 
@@ -66,7 +68,7 @@ end
 ---------------------------------------
 -- byte0, bits:
 -- * 0, 1, 2, 3: reserved for user
--- * 4, 5: reserved for heade
+-- * 4, 5: reserved for header
 -- * 6: indicates that frame contains only ack and no sequence
 local H_BIT_ACK = 6
 -- * 7: indicates that frame contains unreliable packet at last position
@@ -77,15 +79,15 @@ local H_BIT_UNRELIABLE = 7
 ---------------------------------------
 -- Frame, Packet and Message
 ---------------------------------------
--- `Frame` is a pair of header:int32 and data:string (encoded by MessagePack).
---  * data :: {reliable packet, reliable packet ..., optional unreliable packet}
+-- `Frame` is a pair of header:int32 and data:string (data encoded by MessagePack).
+--  * data :: {[reliable packet, reliable packet ...][, unreliable packet]}
 
 -- `Packet` is an array of messages with sequence number at index 1:
---  * reliable packet: {seq, message, message ...}
---  * unreliable packet :: {message, message ...}
+--  * reliable packet: {seq, message[, message ...]}
+--  * unreliable packet :: {message[, message ...]}
 
 -- `Message` is an array of values (non encoded):
---  * message :: {val1, val2, ...}
+--  * message :: {val1[, val2, ...]}
 
 ---------------------------------------
 -- How we acknowledging
@@ -146,7 +148,7 @@ local DEFAULT_CONFIG = Config {
     MAX_DATA_BYTES = false,
     MAX_RELIABLE_PACKETS = 3,
     UPDATE_INTERVAL = 0.2,
-    ACK_TIMEOUT = 0.2,         -- 1..2x UPDATE_INTERVAL, should be less then PACKET_RESEND_DELAY
+    ACK_TIMEOUT = 0.4,         -- 1..2x UPDATE_INTERVAL, should be less then PACKET_RESEND_DELAY
     PACKET_RESEND_DELAY = 0.6, -- 2..3x UPDATE_INTERVAL
 }
 
@@ -160,9 +162,8 @@ ReliableEndpoint.__index = ReliableEndpoint
 function ReliableEndpoint.New(config, id, gettime)
     assert(not config or config.type ~= ReliableEndpoint.type, "remove `:` from New call")
     local self = setmetatable({}, ReliableEndpoint)
-    config = config or DEFAULT_CONFIG
-    self.id = id or config.NAME
-    self.config = config
+    self.config = config or DEFAULT_CONFIG
+    self.id = id or self.config.NAME
     self.reliable_message_queue = Queue()
     self.unreliable_message_queue = Queue()
     self.receive_message_queue = Queue()
@@ -227,32 +228,30 @@ function ReliableEndpoint:OutBufferFull()
     return self.out_buffered >= WINDOW_SIZE
 end
 
-
-function ReliableEndpoint:GetUpdateInterval()
-    return self.config.UPDATE_INTERVAL
-end
-
--- TODO: test unreliable messaging (how?)
--- @ SendMessage :: self, message:any[, unrealible=false] -> true | false, message
+-- @ SendMessage :: self, message:str|table[, unrealible] -> true, count | false, err
 function ReliableEndpoint:SendMessage(message, unrealible)
-    assert(message ~= nil, "message can't be nil")
+    local msg_t = type(message)
+    local queue_size = nil
+    assert(message and (msg_t == "table" or msg_t == "string"), "message should be a table or string")
+    local size = msg_t == "table" and MessagePack.encode(message, "measure") or #message
     local max_size
     if unrealible then
         max_size = self.config.MAX_UNREALIBLE_MESSAGE_SIZE
-        if #message > max_size then
-            return false, format("[%s]: message size: %d bytes > max:%d bytes", self.id, #message, max_size)
+        if size > max_size then
+            return false, format("[%s]: message size: %d bytes > max:%d bytes", self.id, size, max_size)
         end
-        self.unreliable_message_queue:Push(message)
+        queue_size = #self.unreliable_message_queue:Push(message)
     else
         max_size = self.config.MAX_REALIBLE_MESSAGE_SIZE
-        if #message > max_size then
-            return false, format("[%s]: message size: %d bytes > max:%d sizes", self.id, #message, max_size)
+        if size > max_size then
+            return false, format("[%s]: message size: %d bytes > max:%d bytes", self.id, size, max_size)
         end
-        self.reliable_message_queue:Push(message)
+        queue_size = #self.reliable_message_queue:Push(message)
     end
-    return true
+    return true, queue_size
 end
 
+-- @ Update :: self, time ^-> nil
 function ReliableEndpoint:Update(time_now)
     self.now = time_now
     -- TODO: calc stats and update counters
@@ -276,6 +275,11 @@ end
 
 function ReliableEndpoint:Destroy()
     -- do nothing
+end
+
+-- DEBUG:
+function ReliableEndpoint:d(...)
+    if self.id == "@" then print("---------> ", ...) return true end
 end
 
 ---------------------------------------
@@ -338,7 +342,7 @@ function ReliableEndpoint:_OnReceiveFrame(header, data)
     -- handle data
     -------------------------
     local packets = MessagePack.decode(data)
-    assert(type(packets) == "table", "wtf")
+    assert(type(packets) == "table", "sanity check")
 
     -- unreliable packet
     if has_unreliable_packet then
@@ -409,12 +413,12 @@ function ReliableEndpoint:_CreateFrame(time_now)
             if not message then
                 break
             end
-            local nbytes = MessagePack.encode(message, "measure")
-            if unreliable_bytes + nbytes > threshold then
+            local msize = MessagePack.encode(message, "measure")
+            if unreliable_bytes + msize > threshold then
                 break
             end
             unreliable_packet[#unreliable_packet + 1] = self.unreliable_message_queue:Pop()
-            unreliable_bytes = unreliable_bytes + nbytes
+            unreliable_bytes = unreliable_bytes + msize
         end
     end
 
@@ -508,10 +512,10 @@ if DEBUG then
         tag = tostring(tag or "#")
         header = BitVector32(header)
         local ack = header:get_byte(1)
-        local packets = MessagePack.decode(data)
+        local packets = type(data) == "table" and data or MessagePack.decode(data)
         local out = {}
         for _, packet in ipairs(packets) do
-            out[#out + 1] = packet[1]
+            out[#out + 1] = type(packet[1]) ~= "number" and "#nr" or packet[1]
         end
         local seq = concat(out, ", ")
         return format("[%s %.3f KB] | ack: %0.3d | seq:[%s]", tag, #data / 1000, ack, seq)

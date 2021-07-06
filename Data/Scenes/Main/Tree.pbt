@@ -14,9 +14,10 @@ Objects {
       Z: 1
     }
   }
-  ChildIds: 1842276021023141931
+  ChildIds: 2675379327775575188
   ChildIds: 7367735074338159388
   ChildIds: 16813558807825262224
+  ChildIds: 13149058466534118295
   ChildIds: 14713340454944924967
   ChildIds: 10005074784157121906
   ChildIds: 14982843161775482339
@@ -615,6 +616,38 @@ Objects {
   }
 }
 Objects {
+  Id: 13149058466534118295
+  Name: "TrustedEventsTest"
+  Transform {
+    Scale {
+      X: 1
+      Y: 1
+      Z: 1
+    }
+  }
+  ParentId: 4781671109827199097
+  Collidable_v2 {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  Visible_v2 {
+    Value: "mc:evisibilitysetting:inheritfromparent"
+  }
+  TemplateInstance {
+    ParameterOverrideMap {
+      key: 1764733786816012248
+      value {
+        Overrides {
+          Name: "Name"
+          String: "TrustedEventsTest"
+        }
+      }
+    }
+    TemplateAsset {
+      Id: 13525242522203125353
+    }
+  }
+}
+Objects {
   Id: 16813558807825262224
   Name: "Spawn Point"
   Transform {
@@ -720,13 +753,9 @@ Objects {
   }
 }
 Objects {
-  Id: 1842276021023141931
+  Id: 2675379327775575188
   Name: "@TrustedEvents"
   Transform {
-    Location {
-    }
-    Rotation {
-    }
     Scale {
       X: 1
       Y: 1
@@ -740,14 +769,28 @@ Objects {
   Visible_v2 {
     Value: "mc:evisibilitysetting:inheritfromparent"
   }
-  CameraCollidable {
-    Value: "mc:ecollisionsetting:inheritfromparent"
-  }
-  EditorIndicatorVisibility {
-    Value: "mc:eindicatorvisibility:visiblewhenselected"
-  }
-  Folder {
-    IsFilePartition: true
-    FilePartitionName: "_TrustedEvents"
+  TemplateInstance {
+    ParameterOverrideMap {
+      key: 9289444814086108371
+      value {
+        Overrides {
+          Name: "Name"
+          String: "@TrustedEvents"
+        }
+        Overrides {
+          Name: "Position"
+          Vector {
+          }
+        }
+        Overrides {
+          Name: "Rotation"
+          Rotator {
+          }
+        }
+      }
+    }
+    TemplateAsset {
+      Id: 15711733878564221137
+    }
   }
 }
