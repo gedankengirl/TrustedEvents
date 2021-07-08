@@ -20,6 +20,7 @@ Assets {
         ChildIds: 4587661722996414324
         ChildIds: 5677358255783130697
         ChildIds: 13337974351641011085
+        ChildIds: 5452788899441613321
         Collidable_v2 {
           Value: "mc:ecollisionsetting:inheritfromparent"
         }
@@ -1741,6 +1742,39 @@ Assets {
           CanBePrevented: true
           KeyBinding_v2 {
             Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 5452788899441613321
+        Name: "TrustedEvents_README"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 9289444814086108371
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:inheritfromparent"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:inheritfromparent"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:inheritfromparent"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Script {
+          ScriptAsset {
+            Id: 16125848706268628621
           }
         }
       }
