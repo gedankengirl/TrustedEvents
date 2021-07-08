@@ -16,7 +16,7 @@
 ]]
 local DEBUG = false
 
-_ENV.require = _G.export or require
+_ENV.require = _G.import or require
 
 local Config = require("Config").New
 local Queue = require("Queue").New
@@ -661,7 +661,7 @@ local function self_test()
         test_loop(100000, 0.1)
         test_loop(10000, 0.5)
         test_loop(10000, 0.95)
-        ---[[ soak, use with caution
+        --[[ soak, use with caution
         test_loop(50000, 0.99)
         --]]
     end

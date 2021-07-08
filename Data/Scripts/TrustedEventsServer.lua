@@ -3,7 +3,7 @@
 ]]
 local DEBUG = false
 
-_ENV.require = _G.export or require
+_ENV.require = _G.import or require
 
 local Maid = require("Maid")
 local Base64 = require("Base64")
@@ -16,7 +16,7 @@ local ReliableEndpoint = require("ReliableEndpoint")
 local format, tpack, tunpack, tsort = string.format, table.pack, table.unpack, table.sort
 local setmetatable, print, warn = setmetatable, print, warn or print
 local tostring, tonumber, concat = tostring, tonumber, table.concat
-local assert, pairs, next, type, pcall = assert, pairs, next, type, pcall
+local assert, pairs, next, type, random = assert, pairs, next, type, math.random
 local Task, Game, Events, BroadcastEventResultCode = Task, Game, Events, BroadcastEventResultCode
 local time = time
 local _G, script = _G, script
@@ -26,10 +26,11 @@ local dtrace = function (...)  if DEBUG then print("[TES]", ...) end end
 _ENV = nil
 
 local ALL_PLAYERS = {id = "*all*players", name = "*all*"}
-local HUGE = 1
+local HUGE = 10^6
 
 local SERVER_CONFIG = ReliableEndpoint.DEFAULT_CONFIG {
     -- overrides
+    NAME = "TSE Server Connection: "
 }
 
 local UNRELIABLE_CONFIG = ReliableEndpoint.DEFAULT_CONFIG {
@@ -140,7 +141,8 @@ function PlayerConnection.New(player)
     self.started = false
 
     -- endpoint
-    self.endpoint = ReliableEndpoint.New(SERVER_CONFIG, channel, time)
+    local id = SERVER_CONFIG.NAME .. player.name
+    self.endpoint = ReliableEndpoint.New(SERVER_CONFIG, id, time)
 
     -- set clean-up on destroy
     self.maid:GiveTask(function () _free_channel(self.channel) end) -- will free ability too
@@ -186,6 +188,10 @@ function PlayerConnection:StartEndpoint()
                 local eventName = message[#message]
                 message[#message] = nil
                 Events.Broadcast(eventName, self.player, tunpack(message))
+                -- DEBUG: randomly prints RTT to console
+                if DEBUG and random() < 0.1 then
+                    print(format("\t\t[%s] RTT: %0.2fs", self.endpoint.id, self.endpoint.rtt))
+                end
             else
                 dtrace(format("WARNING: server sent unknown message: %q", message))
             end

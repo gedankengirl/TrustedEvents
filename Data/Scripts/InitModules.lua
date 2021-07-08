@@ -1,15 +1,15 @@
 --[[
-    _G.export: replacing Core `require` which can take the filename or MUID as
+    _G.import: replacing Core `require` which can take the filename or MUID as
     an argument. This is convenient since you no longer need to do custom
     properties or hardcode MUID strings to export a module.
 
-    If you make `require` an alias of `_G.export` and export modules by name,
+    If you make `require` an alias of `_G.import` and export modules by name,
     then they will continue to function correctly in the absence of Core - for
     example, you can run tests in vanilla Lua 5.3, and not just in the editor.
 
     ```lua
     -- begining of the script
-    _ENV.require = _G.export or require
+    _ENV.require = _G.import or require
 
     ```
     TODO: FAQ
@@ -50,7 +50,7 @@ end
 
 -- Replacement for Core's `require`, works with MUID parameter or module name
 -- like vanilla Lua.
-local function export(nameOrMuid)
+local function import(nameOrMuid)
     local muid = modules[nameOrMuid]
     if not muid then
         -- does it look like a MUID?
@@ -72,9 +72,9 @@ end
 
 -- export to global
 _G.get_muid = get_muid
-_G.export = export
+_G.import = import
 
 if EXPORT_DEPRECATED then
     _G.muid = get_muid
-    _G.req = export
+    _G.req = import
 end

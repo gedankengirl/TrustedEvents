@@ -3,7 +3,7 @@
 ]]
 local DEBUG = false
 
-local require = _G.export or require
+local require = _G.import or require
 
 local Maid = require("Maid")
 local Base64 = require("Base64")
@@ -16,7 +16,7 @@ local TRUSTED_EVENTS_HOST = script:GetCustomProperty("TrustedEventsHost"):WaitFo
 local LOCAL_PLAYER = Game.GetLocalPlayer()
 
 local select, tunpack, mtype, error = select, table.unpack, math.type, error
-local format, print = string.format, print
+local format, print, random = string.format, print, math.random
 local assert, ipairs, type, pcall = assert, ipairs, type, pcall
 local Task, Events, CoreString = Task, Events, CoreString
 local BroadcastEventResultCode, time = BroadcastEventResultCode, time
@@ -26,11 +26,12 @@ local dtrace = function (...)  if DEBUG then print("[TEC]", ...) end end
 
 _ENV = nil
 
-local CLIENT_TICK = 0.3
+local CLIENT_TICK = 0.25
 
 local CLIENT_CONFIG = ReliableEndpoint.DEFAULT_CONFIG {
      -- (!) we prohibit sending unreliable messages over AckAbility
      -- (!) don't mess with this config: you can break client-to-server messaging
+    NAME = "TSEClient: ",
     MAX_UNREALIBLE_PACKET_SIZE = 0,
     MAX_UNREALIBLE_MESSAGE_SIZE = 0,
     MAX_REALIBLE_PACKET_SIZE = 26,
@@ -65,14 +66,15 @@ end
 
 function TrustedEventsClient:Start()
     self.maid = Maid.New(script)
-    self.endpoint = ReliableEndpoint.New(CLIENT_CONFIG, self.channel, time)
+    local id = CLIENT_CONFIG.NAME .. LOCAL_PLAYER.name
+    self.endpoint = ReliableEndpoint.New(CLIENT_CONFIG, id, time)
 
     -- find ack_ability among local player abilities
     local channel, ack_ability, broadcast = nil, nil, nil
     while true do
         for _, ability in ipairs(LOCAL_PLAYER:GetAbilities()) do
-            local id, ch, br = CoreString.Split(ability.name, ",")
-            if id == LOCAL_PLAYER.id then
+            local pid, ch, br = CoreString.Split(ability.name, ",")
+            if pid == LOCAL_PLAYER.id then
                 channel = assert(ch)
                 broadcast = assert(br)
                 ack_ability = ability
@@ -153,6 +155,9 @@ function TrustedEventsClient:Start()
                 local n = assert(message.n)
                 message.eventName = nil
                 message.n = nil
+                if DEBUG and random() < 0.1 then
+                    print(format("\t\t[%s] RTT: %0.2f", self.endpoint.id, self.endpoint.rtt))
+                end
                 Events.Broadcast(eventName, tunpack(message, 1, n))
             else
                 dtrace(format("WARNING: server sent unknown message: %q", message))

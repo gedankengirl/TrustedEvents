@@ -26,6 +26,15 @@ Assets {
   }
 }
 Assets {
+  Id: 9738716488729764326
+  Name: "Animated Neon Sign- Gear Shift"
+  PlatformAssetType: 1
+  PrimaryAsset {
+    AssetType: "StaticMeshAssetRef"
+    AssetId: "fxsm_NeonSign_gearShift"
+  }
+}
+Assets {
   Id: 7887238662729938253
   Name: "Sky Dome"
   PlatformAssetType: 6

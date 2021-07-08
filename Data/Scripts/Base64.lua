@@ -1,5 +1,5 @@
 --[[
-    Fast, memory conservative, pure Lua Base64 encoder/decoder.
+    Fast, memory conservative, pure Lua 5.3+ Base64 encoder/decoder.
 ]]
 
 -- The MIT Licence (MIT)

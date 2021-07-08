@@ -53,7 +53,17 @@ if SERVER then
         assert(player and player:IsA("Player"))
         assert(eventName and type(eventName) == "string", "eventName should be a string")
         local server = getInstance()
-        local ok, err = server:ReliableBroadcastToPlayer(player, eventName, ...)
+        local ok, err = server:BroadcastToPlayer(false, player, eventName, ...)
+        if ok ~= BroadcastEventResultCode.SUCCESS and STRICT then error(err) end
+        return ok, err
+    end
+
+    -- unreliable version `Events.BroadcastToPlayer`
+    function TrustedEvents.UnreliableBroadcastToPlayer(player, eventName, ...)
+        assert(player and player:IsA("Player"))
+        assert(eventName and type(eventName) == "string", "eventName should be a string")
+        local server = getInstance()
+        local ok, err = server:BroadcastToPlayer(true, player, eventName, ...)
         if ok ~= BroadcastEventResultCode.SUCCESS and STRICT then error(err) end
         return ok, err
     end
