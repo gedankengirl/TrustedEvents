@@ -17,7 +17,7 @@
     BehaviorSubject.UpdateDistinct  :: self, x, y, z ^-> nil
     BehaviorSubject.Destroy :: self ^ -> nil
 
-    (!) In this module, we franticly avoiding use more memory than absolutely necessary.
+    (!) In this module, we franticly avoiding use more memory than necessary.
 ]] local DEBUG = true
 
 _ENV.require = _G.import or require
@@ -153,21 +153,20 @@ local function do_broadcast(event, ...)
     end
 end
 
--- NOTE: Signals broadcast yourself in Breadth-first order.
+-- NOTE: Signals broadcast in Breadth-first order.
 function Signals.Broadcast(event, ...)
     if not _signals_in_trampoline then
         _signals_in_trampoline = true
         do_broadcast(event, ...)
     else
-        local ev = tpack(...)
-        ev.eventName = event
-        _signals_queue:Push(ev)
+        local args = tpack(...)
+        args.event = event
+        _signals_queue:Push(args)
         return
     end
     while not _signals_queue:IsEmpty() do
-        local ev = _signals_queue:Pop()
-        local ename = ev.eventName
-        do_broadcast(ename, tunpack(ev, 1, ev.n))
+        local args = _signals_queue:Pop()
+        do_broadcast(args.event, tunpack(args, 1, args.n))
     end
     _signals_in_trampoline = false
 end
@@ -190,8 +189,8 @@ function BehaviorSubject:Connect(observer)
         _observers[self] = observers
     end
     if DEBUG then -- check for observer duplication (very common error)
-        for _, obr in pairs(observers) do
-            if obr == observer then
+        for _, o in pairs(observers) do
+            if o == observer then
                 return error("attempt to duplicate observer connection")
             end
         end
@@ -242,19 +241,19 @@ end
 
 local function test_signals()
     local out = {}
-    local ev1 = Signals.Connect("_x_Test_A", function()
-        Signals.Broadcast("_x_Test_B", "A")
-        Signals.Broadcast("_x_Test_C", "A")
+    local ev1 = Signals.Connect("A", function()
+        Signals.Broadcast("B", "A")
+        Signals.Broadcast("C", "A")
         out[#out + 1] = "A"
     end)
-    local ev2 = Signals.Connect("_x_Test_B", function()
-        Signals.Broadcast("_x_Test_C", "B")
+    local ev2 = Signals.Connect("B", function()
+        Signals.Broadcast("C", "B")
         out[#out + 1] = "B"
     end)
-    local ev3 = Signals.Connect("_x_Test_C", function()
+    local ev3 = Signals.Connect("C", function()
         out[#out + 1] = "C"
     end)
-    Signals.Broadcast("_x_Test_A")
+    Signals.Broadcast("A")
     assert(out[1] == "A" and out[2] == "B" and out[3] == "C" and out[4] == "C")
     assert(ev1.isConnected)
     assert(ev2.isConnected)
