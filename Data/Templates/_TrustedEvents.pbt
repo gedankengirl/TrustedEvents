@@ -104,6 +104,12 @@ Assets {
             }
           }
           Overrides {
+            Name: "cs:Signals"
+            AssetReference {
+              Id: 2268609786492532760
+            }
+          }
+          Overrides {
             Name: "cs:TrustedEvents"
             AssetReference {
               Id: 10999198869143869747
@@ -122,6 +128,10 @@ Assets {
             String: "BitVector32 data structure"
           }
           Overrides {
+            Name: "cs:Config:tooltip"
+            String: "A very simple module for handling read-only key-value configuration files."
+          }
+          Overrides {
             Name: "cs:Maid:tooltip"
             String: "Module for resource management "
           }
@@ -132,10 +142,6 @@ Assets {
           Overrides {
             Name: "cs:Queue:tooltip"
             String: "Queue data structure"
-          }
-          Overrides {
-            Name: "cs:Config:tooltip"
-            String: "A very simple module for handling read-only key-value configuration files."
           }
           Overrides {
             Name: "cs:ReliableEndpoint:tooltip"
