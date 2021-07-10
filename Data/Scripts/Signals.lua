@@ -3,7 +3,7 @@
 
     Core Events interface:
     ======================
-    Signals.Connect(eventName:any, observer) -> EventListener
+    Signals.Connect(eventName:any, observer) ^-> EventListener
     Signals.Broadcast(eventName:any, ...) -> nil
 
     BehaviorSubject interface:
@@ -11,7 +11,7 @@
     Simple analog of ReactiveX BehaviorSubject (http://reactivex.io/documentation/subject.html)
     Well suited for reactive properties.
 
-    Signals.BehaviorSubject(x, y) -> BehaviorSubject
+    Signals.BehaviorSubject(x, y) ^-> BehaviorSubject
     BehaviorSubject.Connect :: self, (x, y, z ^-> nil) -> EventListener
     BehaviorSubject.Update  :: self, x, y, z ^-> nil
     BehaviorSubject.UpdateDistinct  :: self, x, y, z ^-> nil

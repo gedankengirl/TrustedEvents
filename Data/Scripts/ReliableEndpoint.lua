@@ -158,7 +158,7 @@ local DEFAULT_CONFIG = Config {
 local ReliableEndpoint = {type = "ReliableEndpoint"}
 ReliableEndpoint.__index = ReliableEndpoint
 
--- New :: [Config][, id][, gettime: (nil -> time)]
+-- New :: [Config][, id][, gettime: (nil -> time)] -> ReliableEndpoint
 function ReliableEndpoint.New(config, id, gettime)
     assert(not config or config.type ~= ReliableEndpoint.type, "remove `:` from New call")
     local self = setmetatable({}, ReliableEndpoint)
