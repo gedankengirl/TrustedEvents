@@ -101,7 +101,7 @@ They are:
 
 _ENV.require = _G.import or require
 
-local STRESS_TEST = false -- true
+local STRESS_TEST = false -- or true
 
 local TrustedEvents = require("TrustedEvents")
 
@@ -140,6 +140,7 @@ if CLIENT then
     end
     if STRESS_TEST then
         for i = 0, 100 do
+            Task.Wait()
             local ch = tostring(i%9)
             TrustedEvents.BroadcastToServer(CLIENT_STRESS_EVENT, i, string.rep(ch, 17))
         end
@@ -191,6 +192,7 @@ if SERVER then
     if STRESS_TEST then
         local bytes_128 = string.rep("+", 128)
         for i = 0, 1000 do
+            Task.Wait()
             for _, player in pairs(Game.GetPlayers()) do
                 TrustedEvents.BroadcastToPlayer(player, "ServerStressEvent", i, bytes_128)
             end
