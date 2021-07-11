@@ -10,7 +10,7 @@
 --]]
 
 local getmetatable, setmetatable = getmetatable, setmetatable
-local random, mathtype, tonumber = math.random, math.type, tonumber
+local random, mtype, tonumber = math.random, math.type, tonumber
 local rawget, type, pcall = rawget, type, pcall
 local assert, print, format, concat = assert, print, string.format, table.concat
 
@@ -26,7 +26,7 @@ bitvector32.__index = bitvector32
 -- @ bitvector32.new :: [integer=0] -> bitvector32
 function bitvector32.new(integer)
     integer = integer or 0
-    assert(mathtype(integer) == "integer", "arg should be `integer`")
+    assert(mtype(integer) == "integer", "arg should be `integer`")
     -- convert to uint32
     integer = integer & 0xFFFFFFFF
     return setmetatable({_data = integer}, bitvector32)
@@ -35,7 +35,7 @@ bitvector32.New = bitvector32.new
 
 -- 0-based indices in [0, 31]
 function bitvector32:__index(i)
-    if mathtype(i) == "integer" then
+    if mtype(i) == "integer" then
         assert(i >= 0 and i <= 31, "index should be integer in [0, 31]")
         return self._data & (1 << i) ~= 0
     end
@@ -44,7 +44,7 @@ end
 
 -- 0-based indices in [0, 31]
 function bitvector32:__newindex(i, v)
-    assert(mathtype(i) == "integer" and i >= 0 and i <= 31,
+    assert(mtype(i) == "integer" and i >= 0 and i <= 31,
            "index should be integer in [0, 31]")
     self._data = v and self._data | (1 << i) or self._data & ~(1 << i)
 end
@@ -61,7 +61,7 @@ end
 -- Lua 5.2 `bit32.replace` (https://www.lua.org/manual/5.2/manual.html#pdf-bit32.replace)
 -- replace [i, i + width - 1] bits with value of `v`
 function bitvector32:replace(v, i, width)
-    assert(mathtype(v) == "integer", "value should be an integer")
+    assert(mtype(v) == "integer", "value should be an integer")
     assert(width > 0)
     assert(i + width <= 32)
     local mask = ~(-1 << width)
@@ -109,7 +109,7 @@ end
 -- @ bitvector32.eqv :: self, integer -> bool
 -- equality to integer
 function bitvector32:eqv(integer)
-    if mathtype(integer) == "integer" then
+    if mtype(integer) == "integer" then
         -- int32 or uint32
         if integer >= -0x80000000 and integer <= 0xFFFFFFFF then
             -- cast to uint32
@@ -195,6 +195,13 @@ function bitvector32:set_uint16(i, value)
     return self:replace(value, i * 16, 16)
 end
 
+function bitvector32:set_uint32(value)
+    assert(mtype(value) == "integer")
+    value = value & 0xffffffff
+    self._data = value
+    return self
+end
+
 ---------------------------------------
 -- Tests
 ---------------------------------------
@@ -252,6 +259,10 @@ local function basic_test()
         for i = 0, 31 do
             assert(b[i] == c[i])
         end
+        assert(c:eqv(b:int32()))
+        local i = b:int32()
+        c:set_uint32(i)
+        assert(c:eq(b))
     end
 
     -- extract-replace
