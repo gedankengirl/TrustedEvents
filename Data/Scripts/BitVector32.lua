@@ -163,10 +163,18 @@ function bitvector32:uint32()
     return self._data
 end
 
+function bitvector32:set_integer(value)
+    value = value or 0
+    assert(mtype(value) == "integer")
+    value = value & 0xffffffff
+    self._data = value
+    return self
+end
+
 -- alias `eq` to `==` operator
 bitvector32.__eq = bitvector32.eq
 -- alias `uint32` to call opertor `()`
-bitvector32.__call = bitvector32.uint32
+bitvector32.__call = bitvector32.set_integer
 -- alias `popcount` to `#` operator
 bitvector32.__len = bitvector32.popcount
 
@@ -195,12 +203,7 @@ function bitvector32:set_uint16(i, value)
     return self:replace(value, i * 16, 16)
 end
 
-function bitvector32:set_uint32(value)
-    assert(mtype(value) == "integer")
-    value = value & 0xffffffff
-    self._data = value
-    return self
-end
+
 
 ---------------------------------------
 -- Tests
@@ -219,7 +222,7 @@ local function basic_test()
         local bv1 = bv32(bv:int32())
         assert(bv == bv1)
         assert(#bv == #bv1)
-        assert(bv() == bv1())
+        assert(bv:int32() == bv1:int32())
     end
 
     -- index limits
@@ -261,7 +264,7 @@ local function basic_test()
         end
         assert(c:eqv(b:int32()))
         local i = b:int32()
-        c:set_uint32(i)
+        c(i)
         assert(c:eq(b))
     end
 

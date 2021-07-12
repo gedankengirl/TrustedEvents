@@ -10,7 +10,7 @@ _ENV.require = _G.import or require
 local Config = require("Config").New
 local Queue = require("Queue").New
 local MessagePack = require("MessagePack")
-local BitVector32 = require("BitVector32").new
+local SCRATCH32 = require("BitVector32").new()
 
 local pack, unpack = string.pack, string.unpack
 local ipairs, print, error, type, assert = ipairs, print, error, type, assert
@@ -75,9 +75,9 @@ local DEFAULT_CONFIG = Config {
 -- Counters
 ---------------------------------------
 local C_PACKETS_SENT = 1
-local C_PACKETS_RECEIVED = 2
-local C_PACKETS_NOT_RECEIVED = 3
-local C_BYTES_SENT = 4
+local C_BYTES_SENT = 2
+local C_PACKETS_RECEIVED = 3
+local C_PACKETS_NOT_RECEIVED = 4
 
 ---------------------------------------
 -- Unreliable Endpoint
@@ -111,7 +111,7 @@ function UnreliableEndpoint:__tostring()
     return format("%s:%s", self.type, self.id)
 end
 
-function UnreliableEndpoint:Inc(seq)
+function UnreliableEndpoint:inc(seq)
     local maxseq = self.config.MAX_SEQ
     return (seq + 1 + 1 + maxseq) % (maxseq + 1) | 0
 end
@@ -183,9 +183,9 @@ function UnreliableEndpoint:Update(time_now)
 end
 
 function UnreliableEndpoint:Destroy()
-    local out = {self.id}
+    local out = {"#", self.id}
     for i = 1, #self.counters do
-        out[#out + 1] = format("%d:%d", i, self.counters[i])
+        out[#out + 1] = format("%d:%d", i, self.counters[i] or 0)
     end
     print(concat(out, "|"))
 end
@@ -204,18 +204,18 @@ end
 
 -- takes decoded frame: header, data
 function UnreliableEndpoint:_OnReceiveFrame(header, data)
-    header = BitVector32(header)
+    header = SCRATCH32(header)
     local sent_time = header:get_uint16(1)
     local now = pack_time(self.gettime())
     self.rtt = ema(self.rtt, unpack_time(now) - unpack_time(sent_time))
     local seq = header:get_byte(0)
     local lost = 0
     while seq ~= self.expected do
-        self.expected = self:Inc(self.expected)
+        self.expected = self:inc(self.expected)
         lost = lost + 1
         assert(lost < self.config.MAX_SEQ, "sanity check")
     end
-    self.expected = self:Inc(self.expected)
+    self.expected = self:inc(self.expected)
     self:_counter(C_PACKETS_RECEIVED, 1)
     self:_counter(C_PACKETS_NOT_RECEIVED, lost)
 
@@ -264,11 +264,11 @@ function UnreliableEndpoint:_CreateFrame(time_now)
         -------------------------
         -- Write header
         -------------------------
-        local header = BitVector32()
+        local header = SCRATCH32()
         local time = (time_now * 1000 // 1) & 0xffff
         header:set_uint16(1, time)
         header:set_byte(0, self.seq)
-        self.seq = self:Inc(self.seq)
+        self.seq = self:inc(self.seq)
         return header:int32(), unreliable_packet
     end
     return false, "no messages to send"
@@ -289,7 +289,7 @@ local function test_loop(message_count, verbose, drop_rate)
 
     local trace = verbose and print or NOOP
     local dump_frame = function(header, data)
-        header = BitVector32(header)
+        header = SCRATCH32(header)
         local seq = header:get_byte(0)
         local sent_time = unpack_time(header:get_uint16(1))
         return format("[#] seq: %0.3d time:%0.3f size: %d", seq, sent_time, #data)
@@ -368,10 +368,12 @@ local function test_loop(message_count, verbose, drop_rate)
         assert(context[ep1.id] == N)
         assert(context[ep2.id] == N)
     end
-    ep1:Destroy()
-    ep2:Destroy()
 
     print(format(" test loop: Messages: %d\t ticks: %d\t -- ok", N, ticks))
+    if verbose then
+        ep1:Destroy()
+        ep2:Destroy()
+    end
 end
 
 local function self_test()

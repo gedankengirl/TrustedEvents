@@ -20,18 +20,17 @@ _ENV.require = _G.import or require
 
 local Config = require("Config").New
 local Queue = require("Queue").New
-local BitVector32 = require("BitVector32").new
 local MessagePack = require("MessagePack")
+local SCRATCH32 = require("BitVector32").new()
 
 local ipairs, print, error, type, assert = ipairs, print, error, type, assert
 local format, tostring, setmetatable = string.format, tostring, setmetatable
 local mtype, random, min, max = math.type, math.random, math.min, math.max
 local concat, remove = table.concat, table.remove
 local randomseed, os_time = math.randomseed, os.time
-local pcall = pcall
 
-
-local NOOP = function() end
+local NOOP = function()
+end
 
 -- For testing:
 local CORE_ENV = CoreDebug and true
@@ -40,41 +39,42 @@ local dump_frame = NOOP
 
 _ENV = nil
 
--- Constants
-local MAX_SACK_BITS = 16
-local MAX_SEQ_BITS = 8
+---------------------------------------
+-- Constants (16 bit header)
+---------------------------------------
+local K_MAX_SEQ_BITS = 5
+local K_MAX_SACK_BITS = 8
+local K_MAX_SACK = K_MAX_SACK_BITS - 1
+local K_MAX_SEQ = 2 ^ K_MAX_SEQ_BITS - 1
+local K_MAX_WINDOW_SIZE = 2 ^ (K_MAX_SEQ_BITS - 1)
 
-local SEQ_BITS = 7 -- MessagePack will encode 7-bit with just one byte
-local MAX_SEQ = 2 ^ SEQ_BITS - 1
-local MAX_WINDOW_SIZE = 2 ^ (SEQ_BITS - 1)
-local WINDOW_SIZE = 32
-local MAX_SACK = min(MAX_SACK_BITS - 1, WINDOW_SIZE - 1)
--- Contracts
-assert(SEQ_BITS <= MAX_SEQ_BITS)
-assert(WINDOW_SIZE <= MAX_WINDOW_SIZE)
-assert(WINDOW_SIZE & (WINDOW_SIZE - 1) == 0, "WINDOW_SIZE should be a power of 2")
+local function check_config(config)
+    assert(config.MAX_SEQ <= K_MAX_SEQ)
+    assert(config.WINDOW_SIZE & (config.WINDOW_SIZE - 1) == 0)
+    assert(config.WINDOW_SIZE <= (config.MAX_SEQ + 1) / 2)
+    -- TODO: more checks
+end
 
 -- EMA (exponential moving average)
 local EMA_FACTOR = 2 / (100 + 1) -- window size = 100
-local EPSQ = 0.001^2
+local EPSQ = 0.001 ^ 2
 local function ema(prev, val)
     local d = val - prev
-    if prev == 0 or d*d < EPSQ then return val end
+    if prev == 0 or d * d < EPSQ then
+        return val
+    end
     return d * EMA_FACTOR + prev
 end
 
 ---------------------------------------
--- Header
+-- Header 16 bit
 ---------------------------------------
--- byte0, bits:
--- * 0, 1, 2, 3: reserved for user
--- * 4, 5: reserved for header
--- * 6: indicates that frame contains only ack and no sequence
+-- 0...4:   SEQ_BITS
+-- 5.. 7:   FLAGS
+local H_BIT_UNRELIABLE = 5
 local H_BIT_ACK = 6
--- * 7: indicates that frame contains unreliable packet at last position
-local H_BIT_UNRELIABLE = 7
--- byte1: ack
--- byte2, byte3: 16 bit sack
+local H_BIT_RESERVED = 7
+-- 8 .. 15: SACK
 
 ---------------------------------------
 -- Frame, Packet and Message
@@ -117,30 +117,22 @@ local function _between_seq(a, b, c)
     return (a <= b and b < c) or (c < a and a <= b) or (b < c and c < a)
 end
 
--- NOTE: Sometimes returns of _move_seq don't pass the test
--- `math.type == "integer"`. We use idiomatic `| 0` to force.
-
 -- returns seq moved by delta (delta can be negative)
-local function _move_seq(seq, delta)
+local function _move_seq(seq, delta, max_seq)
     assert(mtype(delta) == "integer")
-    return (seq + delta + 1 + MAX_SEQ) % (MAX_SEQ + 1) | 0
-end
-
--- returns incremented value of seq
-local function _inc_seq(seq)
-    return _move_seq(seq, 1)
-end
-
--- returns decremented value of seq
-local function _dec_seq(seq)
-    return _move_seq(seq, -1)
+    -- we use `|0` to force result to be an integer
+    return (seq + delta + 1 + max_seq) % (max_seq + 1) | 0
 end
 
 ---------------------------------------
 -- Default Config
 ---------------------------------------
 local DEFAULT_CONFIG = Config {
-    NAME = "[endpoint]",
+    NAME = "[reliable]",
+    MAX_SEQ = K_MAX_SEQ,
+    MAX_SACK = K_MAX_SACK,
+    WINDOW_SIZE = K_MAX_WINDOW_SIZE,
+    HEADER_IDX = 0, -- 0|1
     MAX_UNREALIBLE_PACKET_SIZE = 512,
     MAX_UNREALIBLE_MESSAGE_SIZE = 256,
     MAX_REALIBLE_PACKET_SIZE = 512,
@@ -148,9 +140,21 @@ local DEFAULT_CONFIG = Config {
     MAX_DATA_BYTES = false,
     MAX_RELIABLE_PACKETS = 3,
     UPDATE_INTERVAL = 0.2,
-    ACK_TIMEOUT = 0.4,         -- 1..2x UPDATE_INTERVAL, should be less then PACKET_RESEND_DELAY
-    PACKET_RESEND_DELAY = 0.6, -- 2..3x UPDATE_INTERVAL
+    ACK_TIMEOUT = 0.4, -- 1..2x UPDATE_INTERVAL, should be less then PACKET_RESEND_DELAY
+    PACKET_RESEND_DELAY = 0.6 -- 2..3x UPDATE_INTERVAL
 }
+
+---------------------------------------
+-- Counters
+---------------------------------------
+local C_PACKETS_SENT = 1
+local C_BYTES_SENT = 2
+local C_PACKETS_RESEND = 3
+local C_PACKETS_RECEIVED = 4
+local C_UNRELIABLE_PACKETS_SENT = 5
+local C_UNRELIABLE_BYTES_SENT = 6
+local C_UNRELIABLE_PACKETS_RECEIVED = 7
+
 
 ---------------------------------------
 -- Reliable Endpoint
@@ -163,6 +167,8 @@ function ReliableEndpoint.New(config, id, gettime)
     assert(not config or config.type ~= ReliableEndpoint.type, "remove `:` from New call")
     local self = setmetatable({}, ReliableEndpoint)
     self.config = config or DEFAULT_CONFIG
+    check_config(self.config)
+    self.WINDOW = self.config.WINDOW_SIZE
     self.id = id or self.config.NAME
     self.reliable_message_queue = Queue()
     self.unreliable_message_queue = Queue()
@@ -176,17 +182,19 @@ function ReliableEndpoint.New(config, id, gettime)
     self.sent_time = {}
     self.ack_sent_time = 0
     self.rtt = 0
-    self.gettime = gettime or function() return self.now end
+    self.gettime = gettime or function()
+        return self.now
+    end
     self.now = 0
     self.lock_transmission = true -- to lock transmission before handshake
     -- in window
     self.in_buffer = {}
     self.packet_expected = 0      -- lower in_buffer
-    self.in_too_far = WINDOW_SIZE -- upper in_buffer + 1
+    self.in_too_far = self.WINDOW -- upper in_buffer + 1
     -- network layer
     self.message_receive_callback = NOOP
     self.transmit_frame_callback = nil
-
+    self.counters = {}
     return self
 end
 
@@ -194,6 +202,24 @@ function ReliableEndpoint:__tostring()
     return format("%s:%s", self.type, self.id)
 end
 
+---------------------------------------
+-- Internal Serial Arithmetic
+---------------------------------------
+function ReliableEndpoint:move_seq(seq, delta)
+    return _move_seq(seq, delta, self.config.MAX_SEQ)
+end
+
+function ReliableEndpoint:inc(seq)
+    return self:move_seq(seq, 1)
+end
+
+function ReliableEndpoint:dec(seq)
+    return self:move_seq(seq, -1)
+end
+
+function ReliableEndpoint:idx(seq)
+    return seq % self.WINDOW
+end
 ---------------------------------------
 -- Public Methods
 ---------------------------------------
@@ -225,26 +251,29 @@ function ReliableEndpoint:CanTransmit()
 end
 
 function ReliableEndpoint:OutBufferFull()
-    return self.out_buffered >= WINDOW_SIZE
+    return self.out_buffered >= self.WINDOW
 end
 
 -- @ SendMessage :: self, message:str|table[, unrealible] -> true, count | false, err
 function ReliableEndpoint:SendMessage(message, unrealible)
     local msg_t = type(message)
     local queue_size = nil
-    assert(message and (msg_t == "table" or msg_t == "string"), "message should be a table or string")
+    assert(message and (msg_t == "table" or msg_t == "string"),
+           "message should be a table or string")
     local size = msg_t == "table" and MessagePack.encode(message, "measure") or #message
     local max_size
     if unrealible then
         max_size = self.config.MAX_UNREALIBLE_MESSAGE_SIZE
         if size > max_size then
-            return false, format("[%s]: message size: %d bytes > max:%d bytes", self.id, size, max_size)
+            return false,
+                   format("[%s]: message size: %d bytes > max:%d bytes", self.id, size, max_size)
         end
         queue_size = #self.unreliable_message_queue:Push(message)
     else
         max_size = self.config.MAX_REALIBLE_MESSAGE_SIZE
         if size > max_size then
-            return false, format("[%s]: message size: %d bytes > max:%d bytes", self.id, size, max_size)
+            return false,
+                   format("[%s]: message size: %d bytes > max:%d bytes", self.id, size, max_size)
         end
         queue_size = #self.reliable_message_queue:Push(message)
     end
@@ -267,37 +296,51 @@ function ReliableEndpoint:Update(time_now)
     assert(data, "sanity check")
 
     if self.config.MAX_DATA_BYTES and #data > self.config.MAX_DATA_BYTES then
-        error(format("ERROR: `data` size: %d bytes exceeds MAX_DATA_BYTES: %d bytes", #data, self.config.MAX_DATA_BYTES))
+        error(format("ERROR: `data` size: %d bytes exceeds MAX_DATA_BYTES: %d bytes", #data,
+                     self.config.MAX_DATA_BYTES))
     end
     self.ack_sent_time = time_now
     self.transmit_frame_callback(header, data)
 end
 
 function ReliableEndpoint:Destroy()
-    -- do nothing
+    -- dump counters
+    local out = {'#', self.id}
+    for i = 1, #self.counters do
+        out[#out + 1] = format("%d:%d", i, self.counters[i] or 0)
+    end
+    print(concat(out, "|"))
 end
 
 -- DEBUG:
 function ReliableEndpoint:d(...)
-    if self.id == "@" then print("---------> ", ...) return true end
+    if self.id == "@" then
+        print("---------> ", ...)
+        return true
+    end
 end
 
 ---------------------------------------
 -- Internals
 ---------------------------------------
+function ReliableEndpoint:_counter(c, val)
+    self.counters[c] = (self.counters[c] or 0) + val
+end
+
 -- takes decoded frame: header, data
 function ReliableEndpoint:_OnReceiveFrame(header, data)
-    local header32 = BitVector32(header)
-    local has_unreliable_packet = header32[H_BIT_UNRELIABLE]
-    local ack_only = header32[H_BIT_ACK]
-    local ack, sack = header32:get_byte(1), header32:get_uint16(1)
+    local header16 = SCRATCH32(header):get_uint16(self.config.HEADER_IDX)
+    header16 = SCRATCH32(header16)
+    local has_unreliable_packet = header16[H_BIT_UNRELIABLE]
+    local ack_only = header16[H_BIT_ACK]
+    local ack, sack = header16:extract(0, 5), header16:get_byte(1)
 
     -------------------------
     -- handle ack
     -------------------------
     while _between_seq(self.ack_expected, ack, self.next_to_send) do
         -- remove acked packet from buffer
-        local idx = self.ack_expected % WINDOW_SIZE
+        local idx = self.ack_expected % self.WINDOW
         local sent_time = self.sent_time[idx]
         self.out_buffer[idx] = false
         self.timeout[idx] = false
@@ -305,7 +348,7 @@ function ReliableEndpoint:_OnReceiveFrame(header, data)
 
         -- shift window
         self.out_buffered = self.out_buffered - 1
-        self.ack_expected = _inc_seq(self.ack_expected)
+        self.ack_expected = self:inc(self.ack_expected)
 
         -- calculate RTT
         self.rtt = ema(self.rtt, self.gettime() - sent_time)
@@ -315,22 +358,22 @@ function ReliableEndpoint:_OnReceiveFrame(header, data)
     -- handle sack
     -------------------------
     do
-        local cursor = _move_seq(ack, 2) -- to skip ack and expected_packet
-        for i = 0, MAX_SACK do
+        local cursor = self:move_seq(ack, 2) -- to skip ack and expected_packet
+        for i = 0, K_MAX_SACK do
             local nak = (sack >> i) & 1 == 0
             if _between_seq(self.ack_expected, cursor, self.next_to_send) then
+                local idx = self:idx(cursor)
                 if not nak then
                     -- Remove received out-of-order packets from window (we will never resend it).
-                    self.timeout[cursor % WINDOW_SIZE] = false
-                    self.out_buffer[cursor % WINDOW_SIZE] = false
+                    self.timeout[idx] = false
+                    self.out_buffer[idx] = false
                 elseif (sack >> i) > 0 then -- nak and ack-with-greater-seq exists
                     -- Heuristic: there is a packet with greater sequence so this one is lost.
-                    assert(self.timeout[cursor % WINDOW_SIZE])
-                    -- TODO: we ned separate timer for RTT, or flag for ASAP
-                    self.timeout[cursor % WINDOW_SIZE] = 0 -- resend ASAP
+                    assert(self.timeout[idx])
+                    self.timeout[idx] = 0 -- to resend ASAP
                 end
             end
-            cursor = _inc_seq(cursor)
+            cursor = self:inc(cursor)
         end
     end
     -- can we return early?
@@ -348,6 +391,7 @@ function ReliableEndpoint:_OnReceiveFrame(header, data)
     if has_unreliable_packet then
         local unreliable = remove(packets)
         assert(unreliable)
+        self:_counter(C_UNRELIABLE_PACKETS_RECEIVED, 1)
         for _, message in ipairs(unreliable) do
             self.receive_message_queue:Push(message)
         end
@@ -356,11 +400,11 @@ function ReliableEndpoint:_OnReceiveFrame(header, data)
     for _, packet in ipairs(packets) do
         -- TODO: review
         local seq = packet[1]
-        local not_buffered = not self.in_buffer[seq % WINDOW_SIZE]
+        local not_buffered = not self.in_buffer[self:idx(seq)]
         if not_buffered and _between_seq(self.packet_expected, seq, self.in_too_far) then
-            self.in_buffer[seq % WINDOW_SIZE] = packet
-            while self.in_buffer[self.packet_expected % WINDOW_SIZE] do
-                local idx = self.packet_expected % WINDOW_SIZE
+            self.in_buffer[self:idx(seq)] = packet
+            while self.in_buffer[self:idx(self.packet_expected)] do
+                local idx = self:idx(self.packet_expected)
                 packet = self.in_buffer[idx]
                 self.in_buffer[idx] = false
                 for i = 2, #packet do -- first is a seq
@@ -368,8 +412,9 @@ function ReliableEndpoint:_OnReceiveFrame(header, data)
                     self.receive_message_queue:Push(message)
                 end
                 -- shift window
-                self.packet_expected = _inc_seq(self.packet_expected)
-                self.in_too_far = _inc_seq(self.in_too_far)
+                self.packet_expected = self:inc(self.packet_expected)
+                self.in_too_far = self:inc(self.in_too_far)
+                self:_counter(C_PACKETS_RECEIVED, 1)
             end
         end
     end
@@ -387,17 +432,17 @@ function ReliableEndpoint:_CreateFrame(time_now)
     -- ACK + SACK
     -------------------------
     local frame = {}
-    local ack = _dec_seq(self.packet_expected)
+    local ack = self:dec(self.packet_expected)
     local sack = 0
     do
         -- NOTE: ack is true, self.packet_expected is false, we know it.  Let's
         -- sack will not contain ack i.e. `bit0 = self.packet_expected + 1`
-        local cursor = _move_seq(ack, 2)
-        for i = 0, MAX_SACK do
-            if self.in_buffer[cursor % WINDOW_SIZE] then
+        local cursor = self:move_seq(ack, 2)
+        for i = 0, K_MAX_SACK do
+            if self.in_buffer[self:idx(cursor)] then
                 sack = sack | (1 << i)
             end
-            cursor = _inc_seq(cursor)
+            cursor = self:inc(cursor)
         end
     end
     -------------------------
@@ -414,7 +459,7 @@ function ReliableEndpoint:_CreateFrame(time_now)
                 break
             end
             local msize = MessagePack.encode(message, "measure")
-            if unreliable_bytes + msize > threshold then
+            if unreliable_bytes + msize >= threshold then
                 break
             end
             unreliable_packet[#unreliable_packet + 1] = self.unreliable_message_queue:Pop()
@@ -432,14 +477,15 @@ function ReliableEndpoint:_CreateFrame(time_now)
             if #frame >= self.config.MAX_RELIABLE_PACKETS then
                 break
             end
-            local idx = cursor % WINDOW_SIZE
+            local idx = self:idx(cursor)
             local packet = self.out_buffer[idx]
             if packet and self.timeout[idx] + self.config.PACKET_RESEND_DELAY <= time_now then
                 assert(packet[1] == cursor, "sanity check")
                 frame[#frame + 1] = packet
+                self:_counter(C_PACKETS_RESEND, 1)
                 self.timeout[idx] = time_now
             end
-            cursor = _inc_seq(cursor)
+            cursor = self:inc(cursor)
         end
     end
     -- collect messages to new packet if window and frame have free space
@@ -458,7 +504,7 @@ function ReliableEndpoint:_CreateFrame(time_now)
                 break
             end
             local msize = MessagePack.encode(message, "measure")
-            if reliable_bytes + msize > threshold then
+            if reliable_bytes + msize >= threshold then
                 break
             end
             reliable_packet[#reliable_packet + 1] = self.reliable_message_queue:Pop()
@@ -467,40 +513,47 @@ function ReliableEndpoint:_CreateFrame(time_now)
         if reliable_bytes > 0 then
             -- buffer new packet
             frame[#frame + 1] = reliable_packet
-            local idx = seq % WINDOW_SIZE
+            local idx = self:idx(seq)
             self.out_buffer[idx] = reliable_packet
             self.timeout[idx] = time_now
             self.sent_time[idx] = time_now
             -- expand window
             self.out_buffered = self.out_buffered + 1
-            self.next_to_send = _inc_seq(self.next_to_send)
+            self.next_to_send = self:inc(self.next_to_send)
+            self:_counter(C_PACKETS_SENT, 1)
+            self:_counter(C_BYTES_SENT, reliable_bytes)
         end
     end
 
     -------------------------
     -- Write header
     -------------------------
-    local header = BitVector32()
-    header:set_byte(1, ack)
-    header:set_uint16(1, sack)
+    local header16 = SCRATCH32()
+    header16:replace(ack, 0, 5)
+    header16:set_byte(1, sack)
 
     if #frame == 0 then
-        header[H_BIT_ACK] = true
+        header16[H_BIT_ACK] = true
     end
 
     -- add unreliable_packet to frame
     if unreliable_bytes > 0 then
         frame[#frame + 1] = unreliable_packet
-        header[H_BIT_UNRELIABLE] = true
+        header16[H_BIT_UNRELIABLE] = true
+        self:_counter(C_UNRELIABLE_PACKETS_SENT, 1)
+        self:_counter(C_UNRELIABLE_BYTES_SENT, unreliable_bytes)
     end
 
-    if header[H_BIT_ACK] and not header[H_BIT_UNRELIABLE] then
+    if header16[H_BIT_ACK] and not header16[H_BIT_UNRELIABLE] then
         -- check ack timeout
         if time_now - self.ack_sent_time < self.config.ACK_TIMEOUT then
             return false -- no frame this time
         end
     end
-
+    -- write header
+    header16 = header16:get_uint16(0)
+    local header = SCRATCH32()
+    header:set_uint16(self.config.HEADER_IDX, header16)
     return header:int32(), frame
 end
 
@@ -510,7 +563,7 @@ end
 if DEBUG then
     dump_frame = function(header, data, tag)
         tag = tostring(tag or "#")
-        header = BitVector32(header)
+        header = SCRATCH32(header)
         local ack = header:get_byte(1)
         local packets = type(data) == "table" and data or MessagePack.decode(data)
         local out = {}
@@ -526,19 +579,20 @@ if DEBUG then
         local out = {self.id}
         out[#out + 1] = format("out:%d:%d#%d ", self.ack_expected, self.next_to_send, self.out_buffered)
         while _between_seq(self.ack_expected, c, self.next_to_send) do
-            local idx = c % WINDOW_SIZE
+            local idx = self:idx(c)
             if self.out_buffer[idx] then
                 out[#out + 1] = format("%d:%0.1f", self.out_buffer[idx][1], self.timeout[idx])
             else
                 out[#out + 1] = format("+%d", c)
             end
-            c = _inc_seq(c)
+            c = self:inc(c)
         end
         out[#out + 1] = format("| in:%d:", self.packet_expected, self.out_buffered)
         c = self.packet_expected
         while _between_seq(self.packet_expected, c, self.in_too_far) do
-            out[#out + 1] = self.in_buffer[c % WINDOW_SIZE] and format("%d", self.in_buffer[c % WINDOW_SIZE][1]) or "x"
-            c = _inc_seq(c)
+            local idx = self:idx(c)
+            out[#out + 1] = self.in_buffer[idx] and format("%d", self.in_buffer[idx][1]) or "x"
+            c = self:inc(c)
         end
         return concat(out, ' ')
     end
@@ -558,8 +612,8 @@ local function test_loop(message_count, drop_rate, verbose)
         NAME = "[endpoint]",
         MAX_RELIABLE_PACKETS = 3,
         UPDATE_INTERVAL = TICK,
-        PACKET_RESEND_DELAY = 3*TICK,
-        ACK_TIMEOUT = 2*TICK,
+        PACKET_RESEND_DELAY = 3 * TICK,
+        ACK_TIMEOUT = 2 * TICK
     }
 
     local trace = verbose and print or NOOP
@@ -644,8 +698,14 @@ local function test_loop(message_count, drop_rate, verbose)
     assert(context[ep1.id] == N)
     assert(context[ep2.id] == N)
 
-    print(format(" test loop: Messages: %d\t drop rate: %2d %%\t ticks: %d\t rtt: [%0.3f\t %0.3f] -- ok", N,
-                 (drop_rate * 100) // 1, ticks, ep1.rtt, ep2.rtt))
+
+    print(format(
+              " test loop: Messages: %d\t drop rate: %2d %%\t ticks: %d\t rtt: [%0.3f\t %0.3f] -- ok",
+              N, (drop_rate * 100) // 1, ticks, ep1.rtt, ep2.rtt))
+    if verbose then
+        ep1:Destroy()
+        ep2:Destroy()
+    end
 end
 
 local function self_test()
@@ -658,9 +718,8 @@ local function self_test()
         test_loop(10000, 0.0)
         test_loop(1000, 0.1)
         test_loop(10000, 0.1)
-        test_loop(100000, 0.1)
-        test_loop(10000, 0.5)
-        test_loop(10000, 0.95)
+        test_loop(1000, 0.5)
+        test_loop(1000, 0.95)
         --[[ soak, use with caution
         test_loop(50000, 0.99)
         --]]
