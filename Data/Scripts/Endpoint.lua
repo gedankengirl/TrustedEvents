@@ -23,10 +23,10 @@ local Queue = require("Queue").New
 local MessagePack = require("MessagePack")
 local SCRATCH32 = require("BitVector32").new()
 
-local ipairs, print, error, type, assert = ipairs, print, error, type, assert
+local print, error, type, assert = print, error, type, assert
 local format, tostring, setmetatable = string.format, tostring, setmetatable
 local mtype, random, min, max = math.type, math.random, math.min, math.max
-local concat, remove = table.concat, table.remove
+local concat = table.concat
 local randomseed, os_time = math.randomseed, os.time
 
 local HUGE = math.maxinteger
@@ -40,7 +40,20 @@ local dump_frame = NOOP
 _ENV = nil
 
 ---------------------------------------
--- Constants (16 bit header)
+-- Header
+---------------------------------------
+-- 0 - 7: SACK     8
+-- 8 -11: ACK      4
+-- 12-13: FLAGS    2
+local H_BIT_DATA = 12
+local H_BIT_SECOND_HEADER  = 13
+-- 14-17: SEQ      4
+-- 18-25: SACK2    8
+-- 26-29: ACK2     4
+-- 30-31: RESERVED 2
+
+---------------------------------------
+-- Constants according to header
 ---------------------------------------
 local K_MAX_SEQ_BITS = 4
 local K_MAX_SACK_BITS = 8
@@ -60,28 +73,12 @@ local function ema(prev, val)
 end
 
 ---------------------------------------
--- Header
----------------------------------------
--- 0 - 7: SACK     8
--- 8 -11: ACK      4
--- 12-13: FLAGS    2
-local H_BIT_DATA = 12
-local H_BIT_SECOND_HEADER  = 13
--- 14-17: SEQ      4
--- 18-25: SACK2    8
--- 26-29: ACK2     4
--- 30-31: RESERVED 2
-
-
-
----------------------------------------
 -- Frame, Packet and Message
 ---------------------------------------
--- `Frame` is a pair of header:int32 and data:str(MessagePack) | nil
--- `data` is a packet or nil
---  * packet:: {message[, message ...]}
--- `message` is an array of values:
---  * message :: {val1[, val2, ...]}
+-- *Frame* is a pair of header:int32 and data:str(MessagePack) | nil
+-- *data* is a packet or nil
+--  packet :: {message[, message ...]}
+--  message :: {value1[, value2, ...]}
 
 ---------------------------------------
 -- How we acknowledging
@@ -89,7 +86,7 @@ local H_BIT_SECOND_HEADER  = 13
 -- * ACK SACK and NAK are commmon abbrevations for positive, selective and negative
 --   acknowledgment (ref: https://en.wikipedia.org/wiki/Retransmission_(data_networks)).
 -- * Header can contain the sequence number of the packet
--- * SACK is a bitmap of (ack+2, ack+3....ack+MAX_SACK+2)
+-- * SACK is a bitmap of (ack+1, ack+2....ack+MAX_SACK+1)
 
 ---------------------------------------
 -- Serial Arithmetic
@@ -164,7 +161,7 @@ function Endpoint.New(config, id, gettime)
 
     -- set constants
     local SEQ_BITS = self.config.SEQ_BITS
-    assert(SEQ_BITS > 0 and SEQ_BITS <= K_MAX_SEQ_BITS, "incorrect number of sequnce bits")
+    assert(SEQ_BITS > 0 and SEQ_BITS <= K_MAX_SEQ_BITS, "incorrect number of sequence bits")
     self.WINDOW = 2^(SEQ_BITS - 1)
     self.MAX_SEQ = 2^SEQ_BITS - 1
     self.ACK_TIMEOUT = self.config.UPDATE_INTERVAL * self.config.ACK_TIMEOUT_FACTOR
@@ -292,11 +289,11 @@ function Endpoint:Update(time_now)
     if not self:CanTransmit() then
         return -- endpoint not ready
     end
-    local header, data = self:_CreateFrame(time_now)
+    local need_to_send, header, data = self:_CreateFrame(time_now)
     local header2 = self.get_second_header()
 
-    if not header and not header2 then
-        return -- nothing to transmit
+    if not need_to_send and not header2 then
+        return -- nothing to send
     end
 
     header = SCRATCH32(header)
@@ -312,6 +309,7 @@ function Endpoint:Update(time_now)
     end
 
     if header2 then
+        -- merge header2 with header
         header[H_BIT_SECOND_HEADER] = true
         header = header:int32()
         header2 = SCRATCH32(header2)
@@ -457,7 +455,7 @@ function Endpoint:_OnReceiveFrame(header, data)
     end
 end
 
--- _CreateFrame :: self, time -> header:int32, data:table | nil
+-- _CreateFrame :: self, time -> bool, header:int32, data:table | nil
 function Endpoint:_CreateFrame(time_now)
     assert(self:CanTransmit(), "sanity check")
     -------------------------
@@ -560,25 +558,21 @@ function Endpoint:_CreateFrame(time_now)
         end
     end
 
-    if not header[H_BIT_DATA] then
-         -- check ack timeout
-        if time_now - self.ack_sent_time < self.ACK_TIMEOUT then
-            return false, nil -- no frame this time
-        end
-    end
+    local need_to_send = header[H_BIT_DATA] or time_now - self.ack_sent_time >= self.ACK_TIMEOUT
 
-    -- write header
-    return header:int32(), data
+    return need_to_send, header:int32(), data
 end
 
 ----------------------------------
 --- Debug Utils
 ----------------------------------
+-- TODO: dumps broken in this version, fix them
 if DEBUG then
     dump_frame = function(header, data, tag)
         data = data or ""
         tag = tostring(tag or "#")
         header = SCRATCH32(header)
+        -- FIXME: header
         local seq = header[H_BIT_DATA] and header:extract(0, 4) or -1
         local ack = header:extract(4, 4)
         local sack = header:extract(10, 6)
@@ -622,7 +616,7 @@ local function test_loop(message_count, drop_rate, verbose)
     -- test config:
     local config = DEFAULT_CONFIG {
         NAME = "",
-        -- SEQ_BITS = 3,
+        -- SEQ_BITS = 4,
         -- ACK_TIMEOUT_FACTOR = 2,
         -- PACKET_RESEND_DELAY_FACTOR = 3,
     }
@@ -728,13 +722,13 @@ local function self_test()
         test_loop(1000, 0.0)
         test_loop(1000, 0.1)
         test_loop(1000, 0.3)
-        test_loop(1000, 0.5)
-        test_loop(1000, 0.7)
-        test_loop(1000, 0.9)
+        -- test_loop(1000, 0.5)
+        -- test_loop(1000, 0.7)
+        -- test_loop(1000, 0.9)
         test_loop(1000, 0.95)
         test_loop(100, 0.99)
         --[[ soak, use with caution
-        test_loop(50000, 0.99)
+        test_loop(10000, 0.99)
         --]]
     end
 end
