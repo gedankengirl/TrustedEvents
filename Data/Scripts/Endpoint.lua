@@ -29,8 +29,8 @@ local mtype, random, min, max = math.type, math.random, math.min, math.max
 local concat, remove = table.concat, table.remove
 local randomseed, os_time = math.randomseed, os.time
 
-local NOOP = function()
-end
+local HUGE = math.maxinteger
+local NOOP = function() end
 
 -- For testing:
 local CORE_ENV = CoreDebug and true
@@ -43,9 +43,9 @@ _ENV = nil
 -- Constants (16 bit header)
 ---------------------------------------
 local K_MAX_SEQ_BITS = 4
-local K_MAX_SACK_BITS = 6
+local K_MAX_SACK_BITS = 8
 local K_MAX_SACK = K_MAX_SACK_BITS - 1
-local K_SACK_SHIFT = 1
+local K_SACK_SHIFT = 1 -- bit0 if SACK = ack + 1
 
 -- EMA (exponential moving average)
 local RTT_WINDOW = 100
@@ -60,14 +60,19 @@ local function ema(prev, val)
 end
 
 ---------------------------------------
--- Header 16 bit
+-- Header
 ---------------------------------------
--- 0-3: SEQ_BITS
--- 4-7: ACK_BITS
--- 8,9: FLAGS
-local H_BIT_SECOND_HEADER  = 8
-local H_BIT_DATA = 9
--- 10-15: SACK
+-- 0 - 7: SACK     8
+-- 8 -11: ACK      4
+-- 12-13: FLAGS    2
+local H_BIT_DATA = 12
+local H_BIT_SECOND_HEADER  = 13
+-- 14-17: SEQ      4
+-- 18-25: SACK2    8
+-- 26-29: ACK2     4
+-- 30-31: RESERVED 2
+
+
 
 ---------------------------------------
 -- Frame, Packet and Message
@@ -132,6 +137,7 @@ local C_PACKETS_RECEIVED = 4
 local C_PACKETS_RE_RECEIVED = 5
 local C_MESSAGES_SENT = 6
 local C_MESSAGES_RECEIVED = 7
+local C_NAK_RESENDS = 8
 
 ---------------------------------------
 -- Endpoint
@@ -140,11 +146,12 @@ local Endpoint = {type = "Endpoint"}
 Endpoint.__index = Endpoint
 
 function Endpoint:dump_counters()
-    return format("snd:%4d resnd:%6d rcv:%4d rercv:%3d",
+    return format("snd:%4d resnd:%6d rcv:%4d rercv:%3d nak:%3d",
     self.counters[C_PACKETS_SENT] or 0,
     self.counters[C_PACKETS_RESEND] or 0,
     self.counters[C_PACKETS_RECEIVED] or 0,
-    self.counters[C_PACKETS_RE_RECEIVED] or 0
+    self.counters[C_PACKETS_RE_RECEIVED] or 0,
+    self.counters[C_NAK_RESENDS] or 0
     )
 end
 
@@ -285,15 +292,14 @@ function Endpoint:Update(time_now)
     if not self:CanTransmit() then
         return -- endpoint not ready
     end
-    local header0, data = self:_CreateFrame(time_now)
-    local header1 = self.get_second_header()
-    if not header0 and not header1 then
+    local header, data = self:_CreateFrame(time_now)
+    local header2 = self.get_second_header()
+
+    if not header and not header2 then
         return -- nothing to transmit
     end
-    local header = SCRATCH32(header0)
-    if header1 then
-        header[H_BIT_SECOND_HEADER] = true
-    end
+
+    header = SCRATCH32(header)
 
     if header[H_BIT_DATA] then
         assert(type(data) == "table")
@@ -305,10 +311,17 @@ function Endpoint:Update(time_now)
         end
     end
 
-    self.ack_sent_time = time_now
-    if header[H_BIT_SECOND_HEADER] then
-        header:set_uint16(1, header1)
+    if header2 then
+        header[H_BIT_SECOND_HEADER] = true
+        header = header:int32()
+        header2 = SCRATCH32(header2)
+        local sack2, ack2 = header2:extract(0, 8), header2:extract(8, 4)
+        header = SCRATCH32(header)
+        header:replace(sack2, 18, 8)
+        header:replace(ack2, 26, 4)
     end
+
+    self.ack_sent_time = time_now
     self.on_transmit_frame(header:int32(), data)
 end
 
@@ -339,12 +352,16 @@ end
 -- takes decoded frame: header, data
 function Endpoint:_OnReceiveFrame(header, data)
     header = SCRATCH32(header)
-    local seq = header[H_BIT_DATA] and header:extract(0, 4) or false
-    local ack = header:extract(4, 4)
-    local sack = header:extract(10, 6)
+    local seq = header[H_BIT_DATA] and header:extract(14, 4) or false
+    local ack = header:extract(8, 4)
+    local sack = header:extract(0, 8)
 
     if header[H_BIT_SECOND_HEADER] then
-        self.on_second_header(header:get_uint16(1))
+        local sack2, ack2 = header:extract(18, 8), header:extract(26, 4)
+        local header2 = SCRATCH32()
+        header2:replace(sack2, 0, 8)
+        header2:replace(ack2, 8, 4)
+        self.on_second_header(header2:int32())
     end
 
     -------------------------
@@ -372,29 +389,35 @@ function Endpoint:_OnReceiveFrame(header, data)
     -- handle sack
     -------------------------
     do
+        local oldest_nak, nak_idx = HUGE, nil
         local cursor = self:move_seq(ack, K_SACK_SHIFT) -- to skip ack and expected_packet
         for i = 0, K_MAX_SACK do
             local nak = (sack >> i) & 1 == 0
             if _between_seq(self.ack_expected, cursor, self.next_to_send) then
                 local idx = self:idx(cursor)
                 if not nak then
-                    -- Remove received out-of-order packets from window (we will never resend it).
+                    -- Remove received out-of-order packets from buffer (we will never resend it).
                     self.timeout[idx] = false
                     self.out_buffer[idx] = false
                     self.on_ack(cursor)
-                --[[ DO NOT UNCOMMENT! Reference: this form of NAK handling (even 1 max) was a bad idea.
                 elseif (sack >> i) > 0 then -- nak and ack-with-greater-seq exists
-                    -- Heuristic: there is a packet with greater sequence so this one is lost.
-                    self.timeout[idx] = 0 -- to resend ASAP
-                --]]
+                    -- Heuristic: there is a packet with greater sequence so this one is defenitly lost.
+                    if self.timeout[idx] < oldest_nak then
+                        oldest_nak = self.timeout[idx]
+                        nak_idx = idx
+                    end
                 end
             end
             cursor = self:inc(cursor)
         end
+        -- one NAK at a time
+        if nak_idx then
+            self.timeout[nak_idx] = -1 -- to resend ASAP
+        end
     end
 
     if not seq then
-        return -- there is no data
+        return -- there is no data to send
     end
 
     -------------------------
@@ -443,8 +466,7 @@ function Endpoint:_CreateFrame(time_now)
     local ack = self:dec(self.packet_expected)
     local sack = 0
     do
-        -- NOTE: ack is true, self.packet_expected is false, we know it.  Let's
-        -- sack will not contain ack i.e. `bit0 = self.packet_expected + 1`
+        -- NOTE: ack is true. Let's sack will not contain ack i.e. `bit0 = ack + 1`
         local cursor = self:move_seq(ack, K_SACK_SHIFT)
         for i = 0, K_MAX_SACK do
             if _between_seq(self.packet_expected, cursor, self.in_too_far) then
@@ -459,21 +481,31 @@ function Endpoint:_CreateFrame(time_now)
     -- Packet
     -------------------------
     local seq = false
+    -- resend
     do
         local cursor = self.ack_expected
-        -- collect unacked packets to resend
+        local oldest, oldest_seq = HUGE, nil
+        -- choose oldest unacked packet to resend
         while _between_seq(self.ack_expected, cursor, self.next_to_send) do
             local idx = self:idx(cursor)
             local packet = self.out_buffer[idx]
-            if packet and self.timeout[idx] <= time_now then
-                seq = cursor
-                self:_counter(C_PACKETS_RESEND, 1)
-                self.timeout[idx] = self.RESEND_DELAY + time_now
+            if packet and self.timeout[idx] < oldest then
+                oldest = self.timeout[idx]
+                oldest_seq = cursor
             end
             cursor = self:inc(cursor)
         end
+        if oldest_seq and oldest <= time_now then
+            seq = oldest_seq
+            if oldest <= 0 then
+                self:_counter(C_NAK_RESENDS, 1)
+            end
+            self:_counter(C_PACKETS_RESEND, 1)
+            self.timeout[self:idx(seq)] = self.RESEND_DELAY + time_now
+        end
     end
-    -- collect messages to new packet if window and frame have free space
+
+    -- new packet if no resend and window have free space
     if not (seq or self:OutBufferFull() or self.message_queue:IsEmpty()) then
         -- NOTE: We need to reserve 2 bytes for seq and array encoding. Array encoding
         -- takes 1 byte if its length <= 15, but for AckAbilities (where every byte
@@ -494,6 +526,8 @@ function Endpoint:_CreateFrame(time_now)
             packet[#packet + 1] = self.message_queue:Pop()
             packet_bytes = packet_bytes + message_bytes
         end
+        assert(packet_bytes ~= 0 or self.message_queue:IsEmpty(), "config error: max package/message sizes")
+
         if packet_bytes > 0 then
             -- buffer new packet
             seq = self.next_to_send
@@ -514,19 +548,19 @@ function Endpoint:_CreateFrame(time_now)
     -------------------------
     -- Write header
     -------------------------
-    local header16 = SCRATCH32()
-    header16:replace(ack, 4, 4)
-    header16:replace(sack, 10, 6)
+    local header = SCRATCH32()
+    header:replace(sack, 0, 8)
+    header:replace(ack, 8, 4)
     local data = nil do
         if seq then
-            header16[H_BIT_DATA] = true
-            header16:replace(seq, 0, 4)
+            header[H_BIT_DATA] = true
+            header:replace(seq, 14, 4)
             data = self.out_buffer[self:idx(seq)]
             assert(data)
         end
     end
 
-    if not header16[H_BIT_DATA] then
+    if not header[H_BIT_DATA] then
          -- check ack timeout
         if time_now - self.ack_sent_time < self.ACK_TIMEOUT then
             return false, nil -- no frame this time
@@ -534,7 +568,7 @@ function Endpoint:_CreateFrame(time_now)
     end
 
     -- write header
-    return header16:int32(), data
+    return header:int32(), data
 end
 
 ----------------------------------
@@ -686,6 +720,7 @@ end
 local function self_test()
     print("[Reliable Endpoint]")
     randomseed(os_time())
+    -- randomseed(12345)
     -- test_loop(10, 0.5, "echo")
     -- test_loop(50, 0.5)
     -- Core won't be able to handle it
@@ -693,10 +728,10 @@ local function self_test()
         test_loop(1000, 0.0)
         test_loop(1000, 0.1)
         test_loop(1000, 0.3)
-        -- test_loop(1000, 0.5)
-        -- test_loop(1000, 0.7)
+        test_loop(1000, 0.5)
+        test_loop(1000, 0.7)
         test_loop(1000, 0.9)
-        -- test_loop(1000, 0.95)
+        test_loop(1000, 0.95)
         test_loop(100, 0.99)
         --[[ soak, use with caution
         test_loop(50000, 0.99)
