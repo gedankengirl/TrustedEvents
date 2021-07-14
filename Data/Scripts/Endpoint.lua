@@ -142,8 +142,10 @@ local C_NAK_RESENDS = 8
 local Endpoint = {type = "Endpoint"}
 Endpoint.__index = Endpoint
 
-function Endpoint:dump_counters()
-    return format("snd:%4d resnd:%6d rcv:%4d rercv:%3d nak:%3d",
+function Endpoint:dump_counters(id)
+    return format("%s:counters:[rtt:%5.2f |snd:%4d |resnd:%6d |rcv:%4d |rercv:%3d | nak:%4d]",
+    id and self.id or "",
+    self.rtt,
     self.counters[C_PACKETS_SENT] or 0,
     self.counters[C_PACKETS_RESEND] or 0,
     self.counters[C_PACKETS_RECEIVED] or 0,
@@ -324,17 +326,12 @@ function Endpoint:Update(time_now)
 end
 
 function Endpoint:Destroy()
-    -- dump counters
-    local out = {'#', self.id}
-    for i = 1, #self.counters do
-        out[#out + 1] = format("%d:%d", i, self.counters[i] or 0)
-    end
-    print(concat(out, "|"))
+    print(self:dump_counters())
 end
 
 -- DEBUG:
 function Endpoint:d(...)
-    if self.id == "@" then
+    if self.id == "A" then
         print("---------> ", ...)
         return true
     end
@@ -387,7 +384,7 @@ function Endpoint:_OnReceiveFrame(header, data)
     -- handle sack
     -------------------------
     do
-        local oldest_nak, nak_idx = HUGE, nil
+        local oldest_nak, nak_idx, nak_seq = HUGE, nil, nil
         local cursor = self:move_seq(ack, K_SACK_SHIFT) -- to skip ack and expected_packet
         for i = 0, K_MAX_SACK do
             local nak = (sack >> i) & 1 == 0
@@ -403,6 +400,7 @@ function Endpoint:_OnReceiveFrame(header, data)
                     if self.timeout[idx] < oldest_nak then
                         oldest_nak = self.timeout[idx]
                         nak_idx = idx
+                        nak_seq = cursor
                     end
                 end
             end
@@ -411,6 +409,7 @@ function Endpoint:_OnReceiveFrame(header, data)
         -- one NAK at a time
         if nak_idx then
             self.timeout[nak_idx] = -1 -- to resend ASAP
+            self:d("NAK", nak_seq)
         end
     end
 
@@ -497,6 +496,7 @@ function Endpoint:_CreateFrame(time_now)
             seq = oldest_seq
             if oldest <= 0 then
                 self:_counter(C_NAK_RESENDS, 1)
+                self:d("RESEND NAK", oldest_seq)
             end
             self:_counter(C_PACKETS_RESEND, 1)
             self.timeout[self:idx(seq)] = self.RESEND_DELAY + time_now
@@ -568,22 +568,21 @@ end
 ----------------------------------
 -- TODO: dumps broken in this version, fix them
 if DEBUG then
-    dump_frame = function(header, data, tag)
+    dump_frame = function(header, data)
         data = data or ""
-        tag = tostring(tag or "#")
         header = SCRATCH32(header)
-        -- FIXME: header
-        local seq = header[H_BIT_DATA] and header:extract(0, 4) or -1
-        local ack = header:extract(4, 4)
-        local sack = header:extract(10, 6)
 
-        return format("[%s %.3f KB] | ack: %0.3d | seq:[%d]", tag, #data / 1000, ack, seq)
+        -- FIXME: header
+        local seq = header[H_BIT_DATA] and header:extract(14, 4)
+        seq = seq and format("%02d", seq) or '--'
+        local ack = header:extract(8, 4)
+        return format("seq:%s ack:%02d #%3.1fKB" , seq, ack, #data / 1000)
     end
 
     dump_endpoint = function(self)
         local c = self.ack_expected
         local out = {self.id}
-        out[#out + 1] = format("out:%d:%d#%d ", self.ack_expected, self.next_to_send, self.out_buffered)
+        out[#out + 1] = format("out: exp:%02d nxt:%02d [#%d]", self.ack_expected, self.next_to_send, self.out_buffered)
         while _between_seq(self.ack_expected, c, self.next_to_send) do
             local idx = self:idx(c)
             if self.out_buffer[idx] then
@@ -593,7 +592,7 @@ if DEBUG then
             end
             c = self:inc(c)
         end
-        out[#out + 1] = format("| in:%d:", self.packet_expected, self.out_buffered)
+        out[#out + 1] = format("| in: exp:%02d", self.packet_expected)
         c = self.packet_expected
         while _between_seq(self.packet_expected, c, self.in_too_far) do
             local idx = self:idx(c)
@@ -646,14 +645,14 @@ local function test_loop(message_count, drop_rate, verbose)
 
     local function receive_frame(endpoint)
         return function(header, data)
-            -- trace(endpoint.id, "<<~ rcv", debug_frame(header, data))
+            trace(endpoint.id, "<<~ rcv", dump_frame(header, data))
             endpoint:OnReceiveFrame(header, data)
         end
     end
 
     local context = {drop = {}}
-    local ep1 = Endpoint.New(config, "A ")
-    local ep2 = Endpoint.New(config, "\t\t\t\t\t\t\t B")
+    local ep1 = Endpoint.New(config, "A")
+    local ep2 = Endpoint.New(config, (" "):rep(50) .. "B")
     ep1:SetReceiveMessageCallback(receive_message(ep1, context))
     ep2:SetReceiveMessageCallback(receive_message(ep2, context))
 
@@ -702,31 +701,27 @@ local function test_loop(message_count, drop_rate, verbose)
     assert(context[ep1.id] == N)
     assert(context[ep2.id] == N)
 
-       print(format("ok: [sq:%d] #%5d drop: %2d%% tick: %6d rtt: [%6.2f %6.2f] [%s |%s]",
-              config.SEQ_BITS, N, (drop_rate * 100) // 1, ticks,
-              ep1.rtt, ep2.rtt, ep1:dump_counters(), ep2:dump_counters()))
-    if verbose then
-        ep1:Destroy()
-        ep2:Destroy()
-    end
+    print(format("ok: [sq:%d] #%5d drop: %2d%% tick: %6d", config.SEQ_BITS, N, (drop_rate * 100) // 1, ticks))
+    ep1:Destroy()
+    ep2:Destroy()
 end
 
 local function self_test()
     print("[Reliable Endpoint]")
-    randomseed(os_time())
-    -- randomseed(12345)
-    -- test_loop(10, 0.5, "echo")
+    -- randomseed(os_time())
+    randomseed(123451)
+    test_loop(20, 0.9, "echo")
     -- test_loop(50, 0.5)
     -- Core won't be able to handle it
     if not CORE_ENV then
-        test_loop(1000, 0.0)
-        test_loop(1000, 0.1)
-        test_loop(1000, 0.3)
+        -- test_loop(1000, 0.0)
+        --test_loop(1000, 0.1)
+        -- test_loop(1000, 0.3)
         -- test_loop(1000, 0.5)
         -- test_loop(1000, 0.7)
         -- test_loop(1000, 0.9)
-        test_loop(1000, 0.95)
-        test_loop(100, 0.99)
+        -- test_loop(1000, 0.95)
+        -- test_loop(100, 0.99)
         --[[ soak, use with caution
         test_loop(10000, 0.99)
         --]]
