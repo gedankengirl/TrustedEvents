@@ -607,10 +607,10 @@ local function test_loop(message_count, drop_rate, verbose)
     drop_rate = max(0, min(drop_rate, 0.99))
 
     -- test config:
-    local TICK = 0.3
+    local TICK = 0.1
     local config = DEFAULT_CONFIG {
         NAME = "[endpoint]",
-        MAX_RELIABLE_PACKETS = 3,
+        MAX_RELIABLE_PACKETS = 1,
         UPDATE_INTERVAL = TICK,
         PACKET_RESEND_DELAY = 3 * TICK,
         ACK_TIMEOUT = 2 * TICK
@@ -711,15 +711,15 @@ end
 local function self_test()
     print("[Reliable Endpoint]")
     randomseed(os_time())
-    test_loop(50, 0.5)
+    -- test_loop(50, 0.5)
+    -- test_loop(20, 0.5, "echo")
     -- Core won't be able to handle it
     if not CORE_ENV then
-        test_loop(20, 0.5, "echo")
-        test_loop(10000, 0.0)
+        -- test_loop(1000, 0.0)
         test_loop(1000, 0.1)
-        test_loop(10000, 0.1)
-        test_loop(1000, 0.5)
+        test_loop(1000, 0.3)
         test_loop(1000, 0.95)
+        test_loop(100, 0.99)
         --[[ soak, use with caution
         test_loop(50000, 0.99)
         --]]

@@ -1,4 +1,5 @@
 --[[
+
     Implementation of "Selective Repeat Request" network protocol with some
     variations and additions.
 
@@ -7,14 +8,14 @@
     This implementation keeps on delivering messages orderly and reliably
     even under severe (90%+) network packets loss.
 
-    This module can handle messages, packets and frames and provides callback
+    This module can handle messages and packets and provides callback
     interface for physical network communications.
 
     You can see a usage exmple in `TrustedEventsServer/TrustedEventsClient`.
 
     -- Copyright (c) 2021 Andrew Zhilin (https://github.com/zoon)
 ]]
-local DEBUG = true
+local DEBUG = false
 
 _ENV.require = _G.import or require
 
@@ -31,6 +32,7 @@ local randomseed, os_time = math.randomseed, os.time
 
 local HUGE = math.maxinteger
 local NOOP = function() end
+local NAK_TIMEOUT = -1
 
 -- For testing:
 local CORE_ENV = CoreDebug and true
@@ -287,7 +289,6 @@ end
 -- @ Update :: self, time ^-> nil
 function Endpoint:Update(time_now)
     self.now = time_now
-    -- TODO: calc stats and update counters
     if not self:CanTransmit() then
         return -- endpoint not ready
     end
@@ -303,7 +304,6 @@ function Endpoint:Update(time_now)
     if header[H_BIT_DATA] then
         assert(type(data) == "table")
         data = MessagePack.encode(data)
-        assert(data, "sanity check")
         if self.config.MAX_DATA_BYTES and #data > self.config.MAX_DATA_BYTES then
             error(format("ERROR: `data` size: %d bytes exceeds MAX_DATA_BYTES: %d bytes",
                 #data, self.config.MAX_DATA_BYTES))
@@ -384,7 +384,6 @@ function Endpoint:_OnReceiveFrame(header, data)
     -- handle sack
     -------------------------
     do
-        local oldest_nak, nak_idx, nak_seq = HUGE, nil, nil
         local cursor = self:move_seq(ack, K_SACK_SHIFT) -- to skip ack and expected_packet
         for i = 0, K_MAX_SACK do
             local nak = (sack >> i) & 1 == 0
@@ -395,21 +394,13 @@ function Endpoint:_OnReceiveFrame(header, data)
                     self.timeout[idx] = false
                     self.out_buffer[idx] = false
                     self.on_ack(cursor)
-                elseif (sack >> i) > 0 then -- nak and ack-with-greater-seq exists
-                    -- Heuristic: there is a packet with greater sequence so this one is defenitly lost.
-                    if self.timeout[idx] < oldest_nak then
-                        oldest_nak = self.timeout[idx]
-                        nak_idx = idx
-                        nak_seq = cursor
-                    end
+                elseif self.ack_expected == cursor and (sack >> i) > 0 then
+                    -- Heuristic: ack_expected is nak and ack-with-greater-seq exists, then
+                    -- this one is defenitly lost, give him priority.
+                    self.timeout[idx] = NAK_TIMEOUT
                 end
             end
             cursor = self:inc(cursor)
-        end
-        -- one NAK at a time
-        if nak_idx then
-            self.timeout[nak_idx] = -1 -- to resend ASAP
-            self:d("NAK", nak_seq)
         end
     end
 
@@ -480,24 +471,29 @@ function Endpoint:_CreateFrame(time_now)
     local seq = false
     -- resend
     do
+        -- choose oldest unacked packet to resend
         local cursor = self.ack_expected
         local oldest, oldest_seq = HUGE, nil
-        -- choose oldest unacked packet to resend
         while _between_seq(self.ack_expected, cursor, self.next_to_send) do
             local idx = self:idx(cursor)
             local packet = self.out_buffer[idx]
             if packet and self.timeout[idx] < oldest then
-                oldest = self.timeout[idx]
+                local timeout = self.timeout[idx]
+                -- is it nak?
+                if cursor == self.ack_expected and timeout == NAK_TIMEOUT then
+                    seq = cursor
+                    self:_counter(C_NAK_RESENDS, 1)
+                    self:_counter(C_PACKETS_RESEND, 1)
+                    self.timeout[idx] = self.RESEND_DELAY + time_now
+                    break
+                end
+                oldest = timeout
                 oldest_seq = cursor
             end
             cursor = self:inc(cursor)
         end
         if oldest_seq and oldest <= time_now then
             seq = oldest_seq
-            if oldest <= 0 then
-                self:_counter(C_NAK_RESENDS, 1)
-                self:d("RESEND NAK", oldest_seq)
-            end
             self:_counter(C_PACKETS_RESEND, 1)
             self.timeout[self:idx(seq)] = self.RESEND_DELAY + time_now
         end
@@ -505,10 +501,6 @@ function Endpoint:_CreateFrame(time_now)
 
     -- new packet if no resend and window have free space
     if not (seq or self:OutBufferFull() or self.message_queue:IsEmpty()) then
-        -- NOTE: We need to reserve 2 bytes for seq and array encoding. Array encoding
-        -- takes 1 byte if its length <= 15, but for AckAbilities (where every byte
-        -- matters): 15 is a reasonable limit for messages number; for networked properties
-        -- it doesn't matter if the frame will be a couple of bytes longer.
         local threshold = self.config.MAX_PACKET_SIZE
         local packet_bytes = 0
         local packet = {}
@@ -566,7 +558,6 @@ end
 ----------------------------------
 --- Debug Utils
 ----------------------------------
--- TODO: dumps broken in this version, fix them
 if DEBUG then
     dump_frame = function(header, data)
         data = data or ""
@@ -695,33 +686,31 @@ local function test_loop(message_count, drop_rate, verbose)
         end
     end
 
-    trace(context[ep1.id])
-    trace(context[ep2.id])
+    -- trace(context[ep1.id])
+    -- trace(context[ep2.id])
 
     assert(context[ep1.id] == N)
     assert(context[ep2.id] == N)
 
-    print(format("ok: [sq:%d] #%5d drop: %2d%% tick: %6d", config.SEQ_BITS, N, (drop_rate * 100) // 1, ticks))
-    ep1:Destroy()
-    ep2:Destroy()
+    print(format("-- ok: [sq:%d] #%5d drop: %2d%% tick: %6d", config.SEQ_BITS, N, (drop_rate * 100) // 1, ticks))
+    if DEBUG then
+        ep1:Destroy()
+        ep2:Destroy()
+    end
 end
 
 local function self_test()
     print("[Reliable Endpoint]")
     -- randomseed(os_time())
-    randomseed(123451)
-    test_loop(20, 0.9, "echo")
-    -- test_loop(50, 0.5)
+    -- test_loop(20, 0.5, "echo")
+    test_loop(50, 0.5)
     -- Core won't be able to handle it
     if not CORE_ENV then
-        -- test_loop(1000, 0.0)
-        --test_loop(1000, 0.1)
-        -- test_loop(1000, 0.3)
-        -- test_loop(1000, 0.5)
-        -- test_loop(1000, 0.7)
-        -- test_loop(1000, 0.9)
-        -- test_loop(1000, 0.95)
-        -- test_loop(100, 0.99)
+        test_loop(1000, 0.0)
+        test_loop(1000, 0.1)
+        test_loop(1000, 0.3)
+        test_loop(1000, 0.5)
+        test_loop(100, 0.95)
         --[[ soak, use with caution
         test_loop(10000, 0.99)
         --]]
