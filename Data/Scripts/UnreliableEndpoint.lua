@@ -64,9 +64,8 @@ end
 ---------------------------------------
 local DEFAULT_CONFIG = Config {
     NAME = "[unreliable]",
-    MAX_UNREALIBLE_PACKET_SIZE = 2048,
-    MAX_UNREALIBLE_MESSAGE_SIZE = 1024,
-    MAX_DATA_BYTES = false,
+    MAX_MESSAGE_SIZE = 1024,
+    MAX_PACKET_SIZE = 3072,
     UPDATE_INTERVAL = 0.25,
     MAX_SEQ = 255
 }
@@ -75,9 +74,10 @@ local DEFAULT_CONFIG = Config {
 -- Counters
 ---------------------------------------
 local C_PACKETS_SENT = 1
-local C_BYTES_SENT = 2
-local C_PACKETS_RECEIVED = 3
-local C_PACKETS_NOT_RECEIVED = 4
+local C_MESSAGES_SENT = 2
+local C_BYTES_SENT = 3
+local C_PACKETS_RECEIVED = 4
+local C_PACKETS_NOT_RECEIVED = 5
 
 ---------------------------------------
 -- Unreliable Endpoint
@@ -85,13 +85,23 @@ local C_PACKETS_NOT_RECEIVED = 4
 local UnreliableEndpoint = {type = "UnreliableEndpoint"}
 UnreliableEndpoint.__index = UnreliableEndpoint
 
+function UnreliableEndpoint:dump_counters(id)
+    return format("%s:counters:[rtt:%5.2f |snd:%4d |rcv:%4d |notrcv:%3d]",
+        id and self.id or "",
+        self.rtt,
+        self.counters[C_PACKETS_SENT] or 0,
+        self.counters[C_PACKETS_RECEIVED] or 0,
+        self.counters[C_PACKETS_NOT_RECEIVED] or 0
+    )
+end
+
 -- New :: [Config][, id] -> UnreliableEndpoint
 function UnreliableEndpoint.New(config, id, gettime)
     assert(not config or config.type ~= UnreliableEndpoint.type, "remove `:` from New call")
     local self = setmetatable({}, UnreliableEndpoint)
     self.config = config or DEFAULT_CONFIG
-    self.id = id or self.config.NAME
-    self.unreliable_message_queue = Queue()
+    self.id = self.config.NAME .. id
+    self.message_queue = Queue()
     self.receive_message_queue = Queue()
     self.lock_transmission = true -- to lock transmission before handshake
     -- rtt
@@ -101,8 +111,8 @@ function UnreliableEndpoint.New(config, id, gettime)
     self.seq = 0      -- for stats
     self.expected = 0 -- for stats
     -- network layer
-    self.message_receive_callback = NOOP
-    self.transmit_frame_callback = nil
+    self.on_message_receive = NOOP
+    self.on_transmit_frame = nil
     self.counters = {}
     return self
 end
@@ -123,13 +133,13 @@ end
 -- Receive callback will receve non-empty Queue with messages.
 -- (!) The callback is *responsible* for removing messages from queue.
 function UnreliableEndpoint:SetReceiveMessageCallback(callback)
-    self.message_receive_callback = callback
+    self.on_message_receive = callback
 end
 
 -- @ SetTransmitFrameCallback :: self, (header, data -> nil) -> nil
 -- sets callback for transfer frames from this endpoint to some physical layer
 function UnreliableEndpoint:SetTransmitFrameCallback(callback)
-    self.transmit_frame_callback = callback
+    self.on_transmit_frame = callback
 end
 
 -- callback to transfer frames from some physical layer to this endpoint
@@ -143,7 +153,7 @@ function UnreliableEndpoint:UnlockTransmission()
 end
 
 function UnreliableEndpoint:CanTransmit()
-    return not self.lock_transmission and self.transmit_frame_callback
+    return not self.lock_transmission and self.on_transmit_frame
 end
 
 -- @ SendMessage :: self, message:str|table[, unrealible] -> true, count | false, err
@@ -151,11 +161,11 @@ function UnreliableEndpoint:SendMessage(message)
     local msg_t = type(message)
     assert(message and (msg_t == "table" or msg_t == "string"), "message should be a table or string")
     local size = msg_t == "table" and MessagePack.encode(message, "measure") or #message
-    local max_size = self.config.MAX_UNREALIBLE_MESSAGE_SIZE
+    local max_size = self.config.MAX_MESSAGE_SIZE
     if size > max_size then
         return false, format("[%s]: message size: %d bytes > max:%d bytes", self.id, size, max_size)
     end
-    local queue_size = #self.unreliable_message_queue:Push(message)
+    local queue_size = #self.message_queue:Push(message)
     return true, queue_size
 end
 
@@ -173,21 +183,11 @@ function UnreliableEndpoint:Update(time_now)
         assert(data)
     end
 
-    if self.config.MAX_DATA_BYTES then
-        local data_size = MessagePack.encode(data, "measure")
-        if data_size > self.config.MAX_DATA_BYTES then
-            error(format("ERROR: `data` size: %d bytes exceeds MAX_DATA_BYTES: %d bytes", #data, self.config.MAX_DATA_BYTES))
-        end
-    end
-    self.transmit_frame_callback(header, data)
+    self.on_transmit_frame(header, data)
 end
 
 function UnreliableEndpoint:Destroy()
-    local out = {"#", self.id}
-    for i = 1, #self.counters do
-        out[#out + 1] = format("%d:%d", i, self.counters[i] or 0)
-    end
-    print(concat(out, "|"))
+    print(self:dump_counters(not DEBUG and self.id))
 end
 
 -- DEBUG:
@@ -230,7 +230,7 @@ function UnreliableEndpoint:_OnReceiveFrame(header, data)
     end
 
     if not self.receive_message_queue:IsEmpty() then
-        self.message_receive_callback(self.receive_message_queue)
+        self.on_message_receive(self.receive_message_queue)
     end
 end
 
@@ -243,10 +243,9 @@ function UnreliableEndpoint:_CreateFrame(time_now)
     local unreliable_bytes = 0
     local unreliable_packet = {}
     do
-        -- 1 byte reserved (see NOTE below)
-        local threshold = self.config.MAX_UNREALIBLE_PACKET_SIZE - 1
+        local threshold = self.config.MAX_PACKET_SIZE - 1
         while true do
-            local message = self.unreliable_message_queue:Peek()
+            local message = self.message_queue:Peek()
             if not message then
                 break
             end
@@ -254,13 +253,16 @@ function UnreliableEndpoint:_CreateFrame(time_now)
             if unreliable_bytes + msize > threshold then
                 break
             end
-            unreliable_packet[#unreliable_packet + 1] = self.unreliable_message_queue:Pop()
+            unreliable_packet[#unreliable_packet + 1] = self.message_queue:Pop()
             unreliable_bytes = unreliable_bytes + msize
         end
     end
+    assert(unreliable_bytes > 0 or self.message_queue:IsEmpty(), "config error: max package/message sizes")
+
     if unreliable_bytes > 0 then
         self:_counter(C_BYTES_SENT, unreliable_bytes)
         self:_counter(C_PACKETS_SENT, 1)
+        self:_counter(C_MESSAGES_SENT, #unreliable_packet)
         -------------------------
         -- Write header
         -------------------------
@@ -338,8 +340,8 @@ local function test_loop(message_count, verbose, drop_rate)
     ep1:UnlockTransmission()
     ep2:UnlockTransmission()
 
-    local min_message_size = config.MAX_UNREALIBLE_MESSAGE_SIZE
-    local max_message_size = config.MAX_UNREALIBLE_MESSAGE_SIZE
+    local min_message_size = config.MAX_MESSAGE_SIZE
+    local max_message_size = config.MAX_MESSAGE_SIZE
 
     local time = 0.0
     local dt = config.UPDATE_INTERVAL
