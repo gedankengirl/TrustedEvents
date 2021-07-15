@@ -118,7 +118,7 @@ function UnreliableEndpoint.New(config, id, gettime)
 end
 
 function UnreliableEndpoint:__tostring()
-    return format("%s:%s", self.type, self.id)
+    return format(self:dump_counters(self.id))
 end
 
 function UnreliableEndpoint:inc(seq)
@@ -182,7 +182,6 @@ function UnreliableEndpoint:Update(time_now)
     else
         assert(data)
     end
-
     self.on_transmit_frame(header, data)
 end
 
@@ -192,7 +191,7 @@ end
 
 -- DEBUG:
 function UnreliableEndpoint:d(...)
-    if self.id == "@" then print("---------> ", ...) return true end
+    if self.id == "A" then print("---------> ", ...) return true end
 end
 
 ---------------------------------------
@@ -234,14 +233,14 @@ function UnreliableEndpoint:_OnReceiveFrame(header, data)
     end
 end
 
--- _CreateFrame :: self, time -> header:int32, data:table | nil
+-- _CreateFrame :: self, time -> header:int32, data:table | false, reason
 function UnreliableEndpoint:_CreateFrame(time_now)
     assert(self:CanTransmit(), "sanity check")
     -------------------------
     -- Unrealiable packet
     -------------------------
-    local unreliable_bytes = 0
-    local unreliable_packet = {}
+    local packet_bytes = 0
+    local packet = {}
     do
         local threshold = self.config.MAX_PACKET_SIZE - 1
         while true do
@@ -250,19 +249,19 @@ function UnreliableEndpoint:_CreateFrame(time_now)
                 break
             end
             local msize = MessagePack.encode(message, "measure")
-            if unreliable_bytes + msize > threshold then
+            if packet_bytes + msize > threshold then
                 break
             end
-            unreliable_packet[#unreliable_packet + 1] = self.message_queue:Pop()
-            unreliable_bytes = unreliable_bytes + msize
+            packet[#packet + 1] = self.message_queue:Pop()
+            packet_bytes = packet_bytes + msize
         end
     end
-    assert(unreliable_bytes > 0 or self.message_queue:IsEmpty(), "config error: max package/message sizes")
+    assert(packet_bytes > 0 or self.message_queue:IsEmpty(), "config error: max package/message sizes")
 
-    if unreliable_bytes > 0 then
-        self:_counter(C_BYTES_SENT, unreliable_bytes)
+    if packet_bytes > 0 then
+        self:_counter(C_BYTES_SENT, packet_bytes)
         self:_counter(C_PACKETS_SENT, 1)
-        self:_counter(C_MESSAGES_SENT, #unreliable_packet)
+        self:_counter(C_MESSAGES_SENT, #packet)
         -------------------------
         -- Write header
         -------------------------
@@ -271,7 +270,7 @@ function UnreliableEndpoint:_CreateFrame(time_now)
         header:set_uint16(1, time)
         header:set_byte(0, self.seq)
         self.seq = self:inc(self.seq)
-        return header:int32(), unreliable_packet
+        return header:int32(), packet
     end
     return false, "no messages to send"
 end
@@ -287,6 +286,7 @@ local function test_loop(message_count, verbose, drop_rate)
     -- test config:
     local config = DEFAULT_CONFIG {
         -- overrides
+        NAME=""
     }
 
     local trace = verbose and print or NOOP
@@ -330,8 +330,8 @@ local function test_loop(message_count, verbose, drop_rate)
     end
 
     local context = {drop = {}}
-    local ep1 = UnreliableEndpoint.New(config, "A ")
-    local ep2 = UnreliableEndpoint.New(config, "\t\t\t\t\t\t\t B")
+    local ep1 = UnreliableEndpoint.New(config, "A")
+    local ep2 = UnreliableEndpoint.New(config, (" "):rep(40) .. "B")
     ep1:SetReceiveMessageCallback(receive_message(ep1, context))
     ep2:SetReceiveMessageCallback(receive_message(ep2, context))
 
@@ -354,17 +354,14 @@ local function test_loop(message_count, verbose, drop_rate)
     for i = 1, N do
         context.drop[ep1] = random() < drop_rate
         context.drop[ep2] = random() < drop_rate
-        if verbose then
-            print("-- time", format("%0.2f", time), "-----------------------")
-        end
         ep1:Update(time)
         ep2:Update(time)
         time = time + dt
         ticks = ticks + 1
     end
     if verbose then
-        print(ep1.id, "lost:", ep1.counters[C_PACKETS_NOT_RECEIVED])
-        print(ep2.id, "lost:", ep2.counters[C_PACKETS_NOT_RECEIVED])
+        ep1:Destroy()
+        ep2:Destroy()
     end
     if drop_rate <= 0 then
         assert(context[ep1.id] == N)
