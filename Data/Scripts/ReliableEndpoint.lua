@@ -15,6 +15,7 @@
 
     -- Copyright (c) 2021 Andrew Zhilin (https://github.com/zoon)
 ]]
+-- TODO: header operations
 local DEBUG = false
 
 _ENV.require = _G.import or require
@@ -32,7 +33,7 @@ local randomseed, os_time = math.randomseed, os.time
 local HUGE = math.maxinteger
 local NOOP = function()
 end
-local NAK_TIMEOUT = -1
+local NAK_TIMEOUT = 0
 
 -- For testing:
 local CORE_ENV = CoreDebug and true
@@ -53,6 +54,55 @@ local H_BIT_SECOND_HEADER = 13
 -- 18-25: SACK2    8
 -- 26-29: ACK2     4
 -- 30-31: RESERVED 2
+
+---------------------------------------
+-- Header Utils
+---------------------------------------
+-- @ header_explode :: header -> ack, sack, seq|false
+local function header_explode(header)
+    header = SCRATCH32(header)
+    local sack, ack = header:extract(0, 8), header:extract(8, 4)
+    local seq = header[H_BIT_DATA] and header:extract(14, 4)
+    return ack, sack, seq
+end
+
+local function header_create(ack, sack, seq)
+    local header = SCRATCH32()
+    header:replace(sack, 0, 8)
+    header:replace(ack, 8, 4)
+    if seq then
+        header[H_BIT_DATA] = true
+        header:replace(seq,14, 4)
+    end
+    return header:int32()
+end
+
+local function header_split(header)
+    local bits = SCRATCH32(header)
+    if bits[H_BIT_SECOND_HEADER] then
+        bits[H_BIT_SECOND_HEADER] = false
+        local header0 = bits:extract(0, 18)
+        local header1 = bits:extract(18, 12)
+        return header0, header1
+    else
+        return header, false
+    end
+end
+
+local function header_merge(header0, header1)
+    if header1 then
+        header0 = SCRATCH32(header0)
+        header0[H_BIT_SECOND_HEADER] = true
+        header0 = header0:int32()
+        header1 = SCRATCH32(header1)
+        local sack2, ack2 = header1:extract(0, 8), header1:extract(8, 4)
+        header0 = SCRATCH32(header0)
+        header0:replace(sack2, 18, 8)
+        header0:replace(ack2, 26, 4)
+        return header0:int32()
+    end
+    return header0
+end
 
 ---------------------------------------
 -- Constants according to header
@@ -205,7 +255,7 @@ function Endpoint.New(config, id, gettime)
 end
 
 function Endpoint:__tostring()
-    return format("%s:%s", self.type, self.id)
+    return format(self:dump_counters(self.id))
 end
 
 ---------------------------------------
@@ -300,26 +350,12 @@ function Endpoint:Update(time_now)
         return -- nothing to send
     end
 
-    header = SCRATCH32(header)
-
-    if header[H_BIT_DATA] then
-        assert(type(data) == "table")
-        data = MessagePack.encode(data)
-    end
-
     if header2 then
-        -- merge header2 with header
-        header[H_BIT_SECOND_HEADER] = true
-        header = header:int32()
-        header2 = SCRATCH32(header2)
-        local sack2, ack2 = header2:extract(0, 8), header2:extract(8, 4)
-        header = SCRATCH32(header)
-        header:replace(sack2, 18, 8)
-        header:replace(ack2, 26, 4)
+        header = header_merge(header, header2)
     end
 
     self.ack_sent_time = time_now
-    self.on_transmit_frame(header:int32(), data)
+    self.on_transmit_frame(header, data)
 end
 
 function Endpoint:Destroy()
@@ -343,17 +379,16 @@ end
 
 -- takes decoded frame: header, data
 function Endpoint:_OnReceiveFrame(header, data)
-    header = SCRATCH32(header)
-    local seq = header[H_BIT_DATA] and header:extract(14, 4) or false
-    local ack = header:extract(8, 4)
-    local sack = header:extract(0, 8)
+    local ack, sack, seq = header_explode(header)
+    local _, header1 = header_split(header)
+    if header1 then
+        self.on_second_header(header1)
+    end
 
-    if header[H_BIT_SECOND_HEADER] then
-        local sack2, ack2 = header:extract(18, 8), header:extract(26, 4)
-        local header2 = SCRATCH32()
-        header2:replace(sack2, 0, 8)
-        header2:replace(ack2, 8, 4)
-        self.on_second_header(header2:int32())
+    if seq then
+        assert(data and type(data) == "table", type(data))
+    else
+        assert(not data)
     end
 
     -------------------------
@@ -402,13 +437,13 @@ function Endpoint:_OnReceiveFrame(header, data)
     end
 
     if not seq then
-        return -- there is no data to send
+        return -- there is no data to process
     end
 
     -------------------------
     -- handle data
     -------------------------
-    local packet = MessagePack.decode(data)
+    local packet = data
     assert(type(packet) == "table", "sanity check")
 
     local buffered = self.in_buffer[self:idx(seq)]
@@ -539,22 +574,15 @@ function Endpoint:_CreateFrame(time_now)
     -------------------------
     -- Write header
     -------------------------
-    local header = SCRATCH32()
-    header:replace(sack, 0, 8)
-    header:replace(ack, 8, 4)
+    local header = header_create(ack, sack, seq)
     local data = nil
-    do
-        if seq then
-            header[H_BIT_DATA] = true
-            header:replace(seq, 14, 4)
-            data = self.out_buffer[self:idx(seq)]
-            assert(data)
-        end
+    if seq then
+        data = self.out_buffer[self:idx(seq)]
+        assert(data)
     end
 
-    local need_to_send = header[H_BIT_DATA] or time_now - self.ack_sent_time >= self.ACK_TIMEOUT
-
-    return need_to_send, header:int32(), data
+    local need_to_send = seq or (time_now - self.ack_sent_time >= self.ACK_TIMEOUT)
+    return need_to_send, header, data
 end
 
 ----------------------------------
@@ -562,13 +590,11 @@ end
 ----------------------------------
 if DEBUG then
     dump_frame = function(header, data)
-        data = data or ""
-        header = SCRATCH32(header)
-
-        local seq = header[H_BIT_DATA] and header:extract(14, 4)
+        data = data or {}
+        local size = MessagePack.encode(data, "measure")
+        local ack, sack, seq = header_explode(header)
         seq = seq and format("%02d", seq) or '--'
-        local ack = header:extract(8, 4)
-        return format("seq:%s ack:%02d #%3.1fKB", seq, ack, #data / 1000)
+        return format("seq:%s ack:%02d #%3.1fKB", seq, ack, #size / 1000)
     end
 
     dump_endpoint = function(self)
@@ -692,7 +718,7 @@ local function test_loop(message_count, drop_rate, verbose)
     assert(context[ep1.id] == N)
     assert(context[ep2.id] == N)
 
-    print(format("-- ok: [sq:%d] #%5d drop: %2d%% ticks: %6d", config.SEQ_BITS, N,
+    print(format("  ok: [sq:%d] #%5d drop: %2d%% ticks: %6d", config.SEQ_BITS, N,
                  (drop_rate * 100) // 1, ticks))
     if DEBUG then
         ep1:Destroy()
@@ -700,8 +726,25 @@ local function test_loop(message_count, drop_rate, verbose)
     end
 end
 
+local function header_util_test()
+    local ack0, sack0, seq0 = 7, 127, 5
+    local ack1, sack1 = 2, 255
+    local header0 = header_create(ack0, sack0, seq0)
+    local header1 = header_create(ack1, sack1)
+    local ack01, sack01, seq01 = header_explode(header0)
+    assert(ack0 == ack01 and sack0 == sack01 and seq0 == seq01)
+    local header01 = header_merge(header0)
+    assert(header01 == header0)
+    header01 = header_merge(header0, header1)
+    local header02, header12 = header_split(header01)
+    assert(header02 == header0)
+    assert(header12 == header1)
+    print("  header_util_test -- ok")
+end
+
 local function self_test()
     print("[Reliable Endpoint]")
+    header_util_test()
     -- randomseed(os_time())
     -- test_loop(20, 0.5, "echo")
     test_loop(50, 0.5)
@@ -728,5 +771,10 @@ Endpoint.DEFAULT_CONFIG = DEFAULT_CONFIG
 
 -- Reserved, unique, short string, that we use for handshaking
 Endpoint.READY = "<~READY!~>"
+
+-- export header utils
+Endpoint.header_explode = header_explode
+Endpoint.header_split = header_split
+Endpoint.header_merge = header_merge
 
 return Endpoint
