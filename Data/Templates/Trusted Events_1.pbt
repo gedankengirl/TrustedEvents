@@ -39,5 +39,5 @@ Assets {
     OwnerName: "zoonior"
     Description: "== TrustedEvents is a drop-in replacement for Core Events.\r\n\r\nThey are:\r\n\r\n  * reliable: have a 100%(*) guarantee to be delivered in the order in which they\r\n    were sent, even if the connection is bad and network packets are lost.\r\n\r\n  * economical: they don\342\200\231t spend the already low\r\n    Events.BrodcastToPlayer/BrodcastToServer budgets.\r\n\r\n  * flexible: you can send *hundreds* of small events per second, or several\r\n    big ones. You have an option to send events either reliably or unreliably.\r\n\r\n  * convenient: all dispatched events are queued; no need to check return\r\n    codes and use Task.Wait.\r\n\r\nv.1 - Proof of concept\r\nv.2 - new client API that mimics Core Events, add Client-to-Server events, UnreliableBroadcastToAllPlayers "
   }
-  SerializationVersion: 91
+  SerializationVersion: 92
 }

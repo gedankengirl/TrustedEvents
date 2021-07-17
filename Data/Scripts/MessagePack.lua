@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-field
 --
 -- lua-MessagePack : <https://fperrad.frama.io/lua-MessagePack/>
 --
@@ -65,13 +66,11 @@ local unpack = string.unpack
 local ipairs = ipairs
 local tonumber, print = tonumber, print
 local BIG_TIMEOUT = 120
-local select = select
-local packsize = string.packsize
 
 ---------------------------------------
 -- Core types:
 ---------------------------------------
-local CoreString = CoreDebug
+local CoreString = CoreString
 local CORE_ENV = CoreString and true
 local Color = Color
 local Rotation = Rotation

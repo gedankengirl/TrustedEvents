@@ -51,19 +51,9 @@ if SERVER then
     -- method that mimics `Events.BroadcastToPlayer`
     function TrustedEvents.BroadcastToPlayer(player, eventName, ...)
         assert(player and player:IsA("Player"))
-        assert(eventName and type(eventName) == "string", "eventName should be a string")
+        assert(eventName)
         local server = getInstance()
-        local ok, err = server:BroadcastToPlayer(false, player, eventName, ...)
-        if ok ~= BroadcastEventResultCode.SUCCESS and STRICT then error(err) end
-        return ok, err
-    end
-
-    -- unreliable version `Events.BroadcastToPlayer`
-    function TrustedEvents.UnreliableBroadcastToPlayer(player, eventName, ...)
-        assert(player and player:IsA("Player"))
-        assert(eventName and type(eventName) == "string", "eventName should be a string")
-        local server = getInstance()
-        local ok, err = server:BroadcastToPlayer(true, player, eventName, ...)
+        local ok, err = server:BroadcastToPlayer(player, eventName, ...)
         if ok ~= BroadcastEventResultCode.SUCCESS and STRICT then error(err) end
         return ok, err
     end
@@ -80,10 +70,10 @@ end
 
 if CLIENT then
 
-    function TrustedEvents.BroadcastToServer(eventName, ...)
-        assert(eventName and type(eventName) == "string", "eventName should be a string")
+    function TrustedEvents.BroadcastToServer(event, ...)
+        -- FIXME: could be a small integer too
         local client = getInstance()
-        local ok, err = client:BroadcastToServer(eventName, ...)
+        local ok, err = client:BroadcastToServer(event, ...)
         if ok ~= BroadcastEventResultCode.SUCCESS and STRICT then error(err) end
         return ok, err
     end

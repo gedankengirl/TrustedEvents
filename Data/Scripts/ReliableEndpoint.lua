@@ -164,6 +164,7 @@ end
 ---------------------------------------
 local DEFAULT_CONFIG = Config {
     NAME = "[endpoint]",
+    -- IMPORTANT: SEQ_BITS of both ends must be the same!
     SEQ_BITS = K_MAX_SEQ_BITS,
     -- NOTE: for message-count < 15 every level adds 1 byte;
     -- MP{header:int32, data:str} adds 7 bytes
@@ -386,7 +387,7 @@ function Endpoint:_OnReceiveFrame(header, data)
     end
 
     if seq then
-        assert(data and type(data) == "table", type(data))
+        assert(data and type(data) == "table", self.id..type(data)..seq)
     else
         assert(not data)
     end
@@ -745,7 +746,7 @@ end
 local function self_test()
     print("[Reliable Endpoint]")
     header_util_test()
-    -- randomseed(os_time())
+    randomseed(os_time())
     -- test_loop(20, 0.5, "echo")
     test_loop(50, 0.5)
     -- Core won't be able to handle it

@@ -18,7 +18,8 @@
     BehaviorSubject.Destroy :: self ^ -> nil
 
     (!) In this module, we franticly avoiding use more memory than necessary.
-]] local DEBUG = true
+]]
+local DEBUG = true
 
 _ENV.require = _G.import or require
 
@@ -174,10 +175,10 @@ end
 ---------------------------------------
 -- BehaviorSubject
 ---------------------------------------
--- NOTE: if three arguments are not enough: use the table!
+-- NOTE: if three args are not enough: use the table!
 function BehaviorSubject.New(x, y, z, ...)
-    assert(x, "specify at least one state argument")
-    assert(select("#", ...) == 0, "3 state arguments max")
+    assert(x, "specify at least one state arg")
+    assert(select("#", ...) == 0, "3 state args max (use the table as arg)")
     return setmetatable({x, y, z}, BehaviorSubject)
 end
 
@@ -210,9 +211,9 @@ function BehaviorSubject:Update(x, y, z)
 end
 
 function BehaviorSubject:UpdateDistinct(x, y, z)
-    assert(type(x) ~= "table", "can't use UpdateDistinct with reference arg#1")
-    assert(type(y) ~= "table", "can't use UpdateDistinct with reference arg#2")
-    assert(type(z) ~= "table", "can't use UpdateDistinct with reference arg#3")
+    assert(type(x) ~= "table", "can't use UpdateDistinct with arg#1 of reference type")
+    assert(type(y) ~= "table", "can't use UpdateDistinct with arg#2 of reference type")
+    assert(type(z) ~= "table", "can't use UpdateDistinct with arg#3 of reference type")
     if x ~= self[1] or y ~= self[2] or z ~= self[3] then
         self:Update(x, y, z)
     end

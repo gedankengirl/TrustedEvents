@@ -42,7 +42,7 @@ They are:
     The whole Core Events API and all argument types are supported.
     https://docs.coregames.com/api/events/
 
-(!) The current version of the template supports up to 16 players per server.
+(!) The current version of the template supports up to 32 players per server.
 
 == What makes TrustedEvents different from Core Events. Limitations.
 
@@ -58,7 +58,7 @@ They are:
         with a maximum of 512 bytes a time.
 
     2.2 TrustedEvents.BroadcastToServer has a 20..22-bytes(**) size limit per
-        event(*). Events are sent 4 times a second with a maximum of 25 bytes
+        event(*). Events are sent 30 times a second with a maximum of 25 bytes
         a time. Unlike Events.BroadcastToServer, these are per-player limits
         (as opposed to the all-players limit)
 
@@ -86,7 +86,7 @@ They are:
 
 ]]
 
---[[ == TrustedEvents Runnable Example Block
+---[[ == TrustedEvents Runnable Example Block
 -- ----------------------------------------------------------------------------
 -- To run it:
 
@@ -101,7 +101,7 @@ They are:
 
 _ENV.require = _G.import or require
 
-local STRESS_TEST = false -- or true
+local STRESS_TEST = false or true
 
 local TrustedEvents = require("TrustedEvents")
 
@@ -119,12 +119,11 @@ local CLIENT_STRESS_EVENT = "CSE"
 if CLIENT then
     local LOCAL_PLAYER = Game.GetLocalPlayer()
 
-    TrustedEvents.Connect("ServerTestEvent", function(...)
-        print("[C]", LOCAL_PLAYER.name, "got", "ServerTestEvent", ...)
+    TrustedEvents.Connect("ServerTestEvent", function(msg, i, data)
+        print("[C]", LOCAL_PLAYER.name, "got", "ServerTestEvent", msg, i, #data)
     end)
 
-    TrustedEvents.Connect("ServerStressEvent", function(...)
-        local i, data = select(1, ...)
+    TrustedEvents.Connect("ServerStressEvent", function(i, data)
         print("[C]", LOCAL_PLAYER.name, "got", "ServerStressEvent", i, "+bytes:", #data)
     end)
 
@@ -139,10 +138,14 @@ if CLIENT then
         TrustedEvents.BroadcastToServer(CLIENT_TEST_EVENT, i, string.rep("0", i))
     end
     if STRESS_TEST then
-        for i = 0, 100 do
-            Task.Wait()
-            local ch = tostring(i%9)
-            TrustedEvents.BroadcastToServer(CLIENT_STRESS_EVENT, i, string.rep(ch, 17))
+        for i = 0, 99 do
+            local ch = tostring(i%8)
+            ---[[
+            local ok, err = TrustedEvents.BroadcastToServer(CLIENT_STRESS_EVENT, i, string.rep(ch, 16))
+            if not ok then
+                print("@@", err)
+            end
+            --]]
         end
     end
 
@@ -158,7 +161,7 @@ if SERVER then
     end)
 
     TrustedEvents.ConnectForPlayer(CLIENT_STRESS_EVENT, function(player, ...)
-        print("[S]", "got event from:", player.name, CLIENT_TEST_EVENT, ...)
+        print("[S]", "got event from:", player.name, CLIENT_STRESS_EVENT, ...)
     end)
 
     -- wait for some players
@@ -172,12 +175,15 @@ if SERVER then
 
     -- NOTE: reliable broadcast to all players internally uses
     -- `TrustedEvents.BroadcastToPlayer`
+    local bytes_32 = string.rep("+", 32-1)       -- ajusted for text and index
+    local bytes_1K = string.rep("+", 1024-30-12) -- ajusted for text and index
 
     for i = 0, 4 do
         -- (!) It is not necessary to wait, the wait is added so that all
         -- events arrive in different packets, and not at the same time
         Task.Wait(0.5)
-        TrustedEvents.BroadcastToAllPlayers("ServerTestEvent", i, "Reliable", Color.CYAN)
+        -- TrustedEvents.BroadcastToAllPlayers("ServerTestEvent", i, "Reliable", "1234567890")
+        TrustedEvents.BroadcastToAllPlayers("ServerTestEvent", i, "Reliable", bytes_1K)
     end
 
     ----------------------------------------
@@ -186,15 +192,17 @@ if SERVER then
 
     for i = 0, 4 do
         Task.Wait(0.5)
-        TrustedEvents.UnreliableBroadcastToAllPlayers("ServerTestEvent", i, "Unrealiable", Color.WHITE)
+        TrustedEvents.UnreliableBroadcastToAllPlayers("ServerTestEvent", i, "Unrealiable", "1234567890")
     end
 
     if STRESS_TEST then
-        local bytes_128 = string.rep("+", 128)
-        for i = 0, 1000 do
+
+        for i = 0, 99 do
             Task.Wait()
+            TrustedEvents.UnreliableBroadcastToAllPlayers("ServerTestEvent", i, "Unrealiable", bytes_1K)
             for _, player in pairs(Game.GetPlayers()) do
-                TrustedEvents.BroadcastToPlayer(player, "ServerStressEvent", i, bytes_128)
+                TrustedEvents.BroadcastToPlayer(player, "ServerStressEvent", i, bytes_1K)
+                TrustedEvents.BroadcastToPlayer(player, "ServerStressEvent", i, bytes_32)
             end
         end
     end
