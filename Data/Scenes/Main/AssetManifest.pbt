@@ -27,7 +27,7 @@ Assets {
 }
 Assets {
   Id: 9738716488729764326
-  Name: "Animated Neon Sign- Gear Shift"
+  Name: "Animated Neon Sign - Gear Shift"
   PlatformAssetType: 1
   PrimaryAsset {
     AssetType: "StaticMeshAssetRef"

@@ -14,14 +14,16 @@ Objects {
       Z: 1
     }
   }
-  ChildIds: 2675379327775575188
+  ChildIds: 7464206498429841281
   ChildIds: 7367735074338159388
   ChildIds: 16813558807825262224
-  ChildIds: 13149058466534118295
+  ChildIds: 3235356467384453338
   ChildIds: 14713340454944924967
   ChildIds: 10005074784157121906
   ChildIds: 14982843161775482339
   ChildIds: 1570915614685270969
+  ChildIds: 18158048263262133248
+  ChildIds: 18075781622722003283
   UnregisteredParameters {
   }
   Collidable_v2 {
@@ -34,6 +36,103 @@ Objects {
     Value: "mc:ecollisionsetting:inheritfromparent"
   }
   Folder {
+  }
+}
+Objects {
+  Id: 18075781622722003283
+  Name: "_TEST"
+  Transform {
+    Location {
+    }
+    Rotation {
+    }
+    Scale {
+      X: 1
+      Y: 1
+      Z: 1
+    }
+  }
+  ParentId: 4781671109827199097
+  Collidable_v2 {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  Visible_v2 {
+    Value: "mc:evisibilitysetting:inheritfromparent"
+  }
+  CameraCollidable {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  EditorIndicatorVisibility {
+    Value: "mc:eindicatorvisibility:visiblewhenselected"
+  }
+  Script {
+    ScriptAsset {
+      Id: 16327839254557552097
+    }
+  }
+}
+Objects {
+  Id: 18158048263262133248
+  Name: "ClientContext"
+  Transform {
+    Location {
+    }
+    Rotation {
+    }
+    Scale {
+      X: 1
+      Y: 1
+      Z: 1
+    }
+  }
+  ParentId: 4781671109827199097
+  ChildIds: 832849555930201135
+  Collidable_v2 {
+    Value: "mc:ecollisionsetting:forceoff"
+  }
+  Visible_v2 {
+    Value: "mc:evisibilitysetting:inheritfromparent"
+  }
+  CameraCollidable {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  EditorIndicatorVisibility {
+    Value: "mc:eindicatorvisibility:visiblewhenselected"
+  }
+  NetworkContext {
+  }
+}
+Objects {
+  Id: 832849555930201135
+  Name: "_TEST"
+  Transform {
+    Location {
+    }
+    Rotation {
+    }
+    Scale {
+      X: 1
+      Y: 1
+      Z: 1
+    }
+  }
+  ParentId: 18158048263262133248
+  Collidable_v2 {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  Visible_v2 {
+    Value: "mc:evisibilitysetting:inheritfromparent"
+  }
+  CameraCollidable {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  EditorIndicatorVisibility {
+    Value: "mc:eindicatorvisibility:visiblewhenselected"
+  }
+  Script {
+    ScriptAsset {
+      Id: 16327839254557552097
+    }
   }
 }
 Objects {
@@ -655,7 +754,7 @@ Objects {
         Value: "mc:eabilityaimmode:viewrelative"
       }
       AppearanceChannelingTime: 2
-      MountChannelingTime: 2
+      MountChannelingTime: 0.1
       FlipOnMultiJump: true
       CanMoveUp: true
       CanMoveDown: true
@@ -665,7 +764,7 @@ Objects {
   }
 }
 Objects {
-  Id: 13149058466534118295
+  Id: 3235356467384453338
   Name: "TrustedEventsTest"
   Transform {
     Scale {
@@ -675,25 +774,143 @@ Objects {
     }
   }
   ParentId: 4781671109827199097
+  ChildIds: 4787451188479938070
+  ChildIds: 5552211155071017372
   Collidable_v2 {
     Value: "mc:ecollisionsetting:inheritfromparent"
   }
   Visible_v2 {
     Value: "mc:evisibilitysetting:inheritfromparent"
   }
-  TemplateInstance {
-    ParameterOverrideMap {
-      key: 1764733786816012248
-      value {
-        Overrides {
-          Name: "Name"
-          String: "TrustedEventsTest"
-        }
-      }
+  CameraCollidable {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  EditorIndicatorVisibility {
+    Value: "mc:eindicatorvisibility:visiblewhenselected"
+  }
+  Folder {
+    IsGroup: true
+  }
+  InstanceHistory {
+    SelfId: 3235356467384453338
+    SubobjectId: 1764733786816012248
+    InstanceId: 13149058466534118295
+    TemplateId: 13525242522203125353
+    WasRoot: true
+  }
+}
+Objects {
+  Id: 5552211155071017372
+  Name: "_TrustedEventsTest(client)"
+  Transform {
+    Location {
     }
-    TemplateAsset {
-      Id: 13525242522203125353
+    Rotation {
     }
+    Scale {
+      X: 1
+      Y: 1
+      Z: 1
+    }
+  }
+  ParentId: 3235356467384453338
+  ChildIds: 7171756125198089650
+  Collidable_v2 {
+    Value: "mc:ecollisionsetting:forceoff"
+  }
+  Visible_v2 {
+    Value: "mc:evisibilitysetting:inheritfromparent"
+  }
+  CameraCollidable {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  EditorIndicatorVisibility {
+    Value: "mc:eindicatorvisibility:visiblewhenselected"
+  }
+  NetworkContext {
+  }
+  InstanceHistory {
+    SelfId: 5552211155071017372
+    SubobjectId: 8761393772471973534
+    InstanceId: 13149058466534118295
+    TemplateId: 13525242522203125353
+  }
+}
+Objects {
+  Id: 7171756125198089650
+  Name: "TrustedEvents_README"
+  Transform {
+    Location {
+    }
+    Rotation {
+    }
+    Scale {
+      X: 1
+      Y: 1
+      Z: 1
+    }
+  }
+  ParentId: 5552211155071017372
+  Collidable_v2 {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  Visible_v2 {
+    Value: "mc:evisibilitysetting:inheritfromparent"
+  }
+  CameraCollidable {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  EditorIndicatorVisibility {
+    Value: "mc:eindicatorvisibility:visiblewhenselected"
+  }
+  Script {
+    ScriptAsset {
+      Id: 16125848706268628621
+    }
+  }
+  InstanceHistory {
+    SelfId: 7171756125198089650
+    SubobjectId: 6277140081385089712
+    InstanceId: 13149058466534118295
+    TemplateId: 13525242522203125353
+  }
+}
+Objects {
+  Id: 4787451188479938070
+  Name: "_TrustedEventsTest(server)"
+  Transform {
+    Location {
+    }
+    Rotation {
+    }
+    Scale {
+      X: 1
+      Y: 1
+      Z: 1
+    }
+  }
+  ParentId: 3235356467384453338
+  Collidable_v2 {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  Visible_v2 {
+    Value: "mc:evisibilitysetting:inheritfromparent"
+  }
+  CameraCollidable {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  EditorIndicatorVisibility {
+    Value: "mc:eindicatorvisibility:visiblewhenselected"
+  }
+  Folder {
+    IsFilePartition: true
+    FilePartitionName: "_TrustedEventsTest(server)"
+  }
+  InstanceHistory {
+    SelfId: 4787451188479938070
+    SubobjectId: 8569121842355542292
+    InstanceId: 13149058466534118295
+    TemplateId: 13525242522203125353
   }
 }
 Objects {
@@ -798,13 +1015,19 @@ Objects {
           HighDistance: 9000
         }
       }
+      PlayerInteractDistance: 500
+      PlayerInteractAngleDeg: 50
     }
   }
 }
 Objects {
-  Id: 2675379327775575188
+  Id: 7464206498429841281
   Name: "@TrustedEvents"
   Transform {
+    Location {
+    }
+    Rotation {
+    }
     Scale {
       X: 1
       Y: 1
@@ -818,28 +1041,21 @@ Objects {
   Visible_v2 {
     Value: "mc:evisibilitysetting:inheritfromparent"
   }
-  TemplateInstance {
-    ParameterOverrideMap {
-      key: 9289444814086108371
-      value {
-        Overrides {
-          Name: "Name"
-          String: "@TrustedEvents"
-        }
-        Overrides {
-          Name: "Position"
-          Vector {
-          }
-        }
-        Overrides {
-          Name: "Rotation"
-          Rotator {
-          }
-        }
-      }
-    }
-    TemplateAsset {
-      Id: 15711733878564221137
-    }
+  CameraCollidable {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  EditorIndicatorVisibility {
+    Value: "mc:eindicatorvisibility:visiblewhenselected"
+  }
+  Folder {
+    IsFilePartition: true
+    FilePartitionName: "_TrustedEvents"
+  }
+  InstanceHistory {
+    SelfId: 7464206498429841281
+    SubobjectId: 9289444814086108371
+    InstanceId: 2675379327775575188
+    TemplateId: 15711733878564221137
+    WasRoot: true
   }
 }
