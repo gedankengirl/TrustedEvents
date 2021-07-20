@@ -15,7 +15,7 @@
 
     -- Copyright (c) 2021 Andrew Zhilin (https://github.com/zoon)
 ]]
--- TODO: header operations
+-- TODO: rcv/snd flags in config
 local DEBUG = false
 
 _ENV.require = _G.import or require
@@ -365,7 +365,7 @@ end
 
 -- DEBUG:
 function Endpoint:d(...)
-    if self.id == "A" then
+    if self.id:find("Client [S]", 1, true) then
         print("---------> ", ...)
         return true
     end
@@ -582,7 +582,7 @@ function Endpoint:_CreateFrame(time_now)
         assert(data)
     end
 
-    local need_to_send = seq or (time_now - self.ack_sent_time >= self.ACK_TIMEOUT)
+    local need_to_send = data and true or (time_now - self.ack_sent_time >= self.ACK_TIMEOUT)
     return need_to_send, header, data
 end
 

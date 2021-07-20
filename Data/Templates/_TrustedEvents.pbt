@@ -35,6 +35,7 @@ Assets {
         }
         Folder {
           IsFilePartition: true
+          FilePartitionName: "_TrustedEvents"
         }
       }
       Objects {
@@ -113,6 +114,12 @@ Assets {
             Name: "cs:TrustedEvents"
             AssetReference {
               Id: 10999198869143869747
+            }
+          }
+          Overrides {
+            Name: "cs:UnreliableEndpoint"
+            AssetReference {
+              Id: 17737735706392805187
             }
           }
           Overrides {
@@ -432,150 +439,40 @@ Assets {
         ChildIds: 17774141452953292257
         ChildIds: 12314268432839599253
         ChildIds: 14726547659973332635
-        ChildIds: 7894375231671880729
-        ChildIds: 6828447682550479424
-        ChildIds: 5225535724584511452
-        ChildIds: 8516650791835221415
-        ChildIds: 8358770872699186273
-        ChildIds: 11521170247919309119
-        ChildIds: 16802586121233007458
-        ChildIds: 11263432080643083964
-        ChildIds: 8260337130630580098
-        ChildIds: 3292532708796588290
-        ChildIds: 9685414969782096145
-        ChildIds: 4552270996518455359
+        ChildIds: 4449487292159865375
+        ChildIds: 13769813241848263922
+        ChildIds: 8567765839138107434
+        ChildIds: 473327380475397412
+        ChildIds: 12696837257642118443
+        ChildIds: 11933198263628618374
+        ChildIds: 6380113031456515116
+        ChildIds: 6196975752515048987
+        ChildIds: 10906715976134140870
+        ChildIds: 7161113739756768391
+        ChildIds: 12935382617145354381
+        ChildIds: 1437379039590234684
+        ChildIds: 9259669519107516335
+        ChildIds: 13702767976231577748
+        ChildIds: 17731417257510036212
+        ChildIds: 16833835429225546959
+        ChildIds: 5047658453739790956
+        ChildIds: 16701521180664526171
+        ChildIds: 4058521140193327172
+        ChildIds: 1818992729909224054
+        ChildIds: 6563765423969907228
+        ChildIds: 10922711732704985761
+        ChildIds: 12040958938148693406
+        ChildIds: 11819622630834501164
+        ChildIds: 9376894708762364777
+        ChildIds: 16957944631007008168
+        ChildIds: 733638386837350532
+        ChildIds: 8057196493786812063
+        ChildIds: 10755580900190296626
+        ChildIds: 14281250804064581907
         UnregisteredParameters {
-          Overrides {
-            Name: "cs:0x01"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x02"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x03"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x04"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x05"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x06"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x07"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x08"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x09"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x0A"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x0B"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x0C"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x0D"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x0E"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x0F"
-            String: ""
-          }
-          Overrides {
-            Name: "cs:0x10"
-            String: ""
-          }
           Overrides {
             Name: "cs:0xFF"
             String: ""
-          }
-          Overrides {
-            Name: "cs:0x01:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x02:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x03:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x04:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x05:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x06:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x07:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x08:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x09:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x0A:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x0B:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x0C:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x0D:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x0E:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x0F:isrep"
-            Bool: true
-          }
-          Overrides {
-            Name: "cs:0x10:isrep"
-            Bool: true
           }
           Overrides {
             Name: "cs:0xFF:isrep"
@@ -597,6 +494,7 @@ Assets {
         }
         Folder {
           IsFilePartition: true
+          FilePartitionName: "TrustedEventsHost"
         }
       }
       Objects {
@@ -628,9 +526,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -639,7 +536,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -700,9 +596,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -711,7 +606,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -772,9 +666,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -783,7 +676,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -844,9 +736,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -855,7 +746,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -888,7 +778,7 @@ Assets {
         }
       }
       Objects {
-        Id: 7894375231671880729
+        Id: 4449487292159865375
         Name: "AckAbility"
         Transform {
           Location {
@@ -916,9 +806,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -927,7 +816,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -960,7 +848,7 @@ Assets {
         }
       }
       Objects {
-        Id: 6828447682550479424
+        Id: 13769813241848263922
         Name: "AckAbility"
         Transform {
           Location {
@@ -988,9 +876,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -999,7 +886,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1032,7 +918,7 @@ Assets {
         }
       }
       Objects {
-        Id: 5225535724584511452
+        Id: 8567765839138107434
         Name: "AckAbility"
         Transform {
           Location {
@@ -1060,9 +946,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1071,7 +956,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1104,7 +988,7 @@ Assets {
         }
       }
       Objects {
-        Id: 8516650791835221415
+        Id: 473327380475397412
         Name: "AckAbility"
         Transform {
           Location {
@@ -1132,9 +1016,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1143,7 +1026,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1176,7 +1058,7 @@ Assets {
         }
       }
       Objects {
-        Id: 8358770872699186273
+        Id: 12696837257642118443
         Name: "AckAbility"
         Transform {
           Location {
@@ -1204,9 +1086,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1215,7 +1096,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1248,7 +1128,7 @@ Assets {
         }
       }
       Objects {
-        Id: 11521170247919309119
+        Id: 11933198263628618374
         Name: "AckAbility"
         Transform {
           Location {
@@ -1276,9 +1156,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1287,7 +1166,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1320,7 +1198,7 @@ Assets {
         }
       }
       Objects {
-        Id: 16802586121233007458
+        Id: 6380113031456515116
         Name: "AckAbility"
         Transform {
           Location {
@@ -1348,9 +1226,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1359,7 +1236,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1392,7 +1268,7 @@ Assets {
         }
       }
       Objects {
-        Id: 11263432080643083964
+        Id: 6196975752515048987
         Name: "AckAbility"
         Transform {
           Location {
@@ -1420,9 +1296,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1431,7 +1306,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1464,7 +1338,7 @@ Assets {
         }
       }
       Objects {
-        Id: 8260337130630580098
+        Id: 10906715976134140870
         Name: "AckAbility"
         Transform {
           Location {
@@ -1492,9 +1366,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1503,7 +1376,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1536,7 +1408,7 @@ Assets {
         }
       }
       Objects {
-        Id: 3292532708796588290
+        Id: 7161113739756768391
         Name: "AckAbility"
         Transform {
           Location {
@@ -1564,9 +1436,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1575,7 +1446,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1608,7 +1478,7 @@ Assets {
         }
       }
       Objects {
-        Id: 9685414969782096145
+        Id: 12935382617145354381
         Name: "AckAbility"
         Transform {
           Location {
@@ -1636,9 +1506,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1647,7 +1516,6 @@ Assets {
             }
           }
           ExecutePhaseSettings {
-            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1680,7 +1548,7 @@ Assets {
         }
       }
       Objects {
-        Id: 4552270996518455359
+        Id: 1437379039590234684
         Name: "AckAbility"
         Transform {
           Location {
@@ -1708,9 +1576,8 @@ Assets {
           Value: "mc:eindicatorvisibility:visiblewhenselected"
         }
         Ability {
-          IsEnabled: true
           CastPhaseSettings {
-            Duration: 1
+            Duration: 0.1
             CanMove: true
             CanJump: true
             CanRotate: true
@@ -1719,7 +1586,1266 @@ Assets {
             }
           }
           ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
             Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 9259669519107516335
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 13702767976231577748
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 17731417257510036212
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 16833835429225546959
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 5047658453739790956
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 16701521180664526171
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 4058521140193327172
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 1818992729909224054
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 6563765423969907228
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 10922711732704985761
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 12040958938148693406
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 11819622630834501164
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 9376894708762364777
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 16957944631007008168
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 733638386837350532
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 8057196493786812063
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 10755580900190296626
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          RecoveryPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CooldownPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          CanBePrevented: true
+          KeyBinding_v2 {
+            Value: "mc:egameaction:invalid"
+          }
+        }
+      }
+      Objects {
+        Id: 14281250804064581907
+        Name: "AckAbility"
+        Transform {
+          Location {
+          }
+          Rotation {
+          }
+          Scale {
+            X: 1
+            Y: 1
+            Z: 1
+          }
+        }
+        ParentId: 13337974351641011085
+        WantsNetworking: true
+        Collidable_v2 {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        Visible_v2 {
+          Value: "mc:evisibilitysetting:forceoff"
+        }
+        CameraCollidable {
+          Value: "mc:ecollisionsetting:forceoff"
+        }
+        EditorIndicatorVisibility {
+          Value: "mc:eindicatorvisibility:visiblewhenselected"
+        }
+        Ability {
+          CastPhaseSettings {
+            Duration: 0.1
+            CanMove: true
+            CanJump: true
+            CanRotate: true
+            Facing_V2 {
+              Value: "mc:eabilitysetfacing:none"
+            }
+          }
+          ExecutePhaseSettings {
             CanMove: true
             CanJump: true
             CanRotate: true

@@ -378,7 +378,7 @@ end
 local function self_test()
     print("[Unreliable Endpoint]")
     test_loop(20, "echo", 0.2)
-    test_loop(50)
+    test_loop(20)
 end
 
 self_test()
