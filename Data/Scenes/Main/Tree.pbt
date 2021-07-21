@@ -14,7 +14,7 @@ Objects {
       Z: 1
     }
   }
-  ChildIds: 7464206498429841281
+  ChildIds: 2675379327775575188
   ChildIds: 7367735074338159388
   ChildIds: 16813558807825262224
   ChildIds: 3235356467384453338
@@ -1021,13 +1021,9 @@ Objects {
   }
 }
 Objects {
-  Id: 7464206498429841281
+  Id: 2675379327775575188
   Name: "@TrustedEvents"
   Transform {
-    Location {
-    }
-    Rotation {
-    }
     Scale {
       X: 1
       Y: 1
@@ -1041,21 +1037,28 @@ Objects {
   Visible_v2 {
     Value: "mc:evisibilitysetting:inheritfromparent"
   }
-  CameraCollidable {
-    Value: "mc:ecollisionsetting:inheritfromparent"
-  }
-  EditorIndicatorVisibility {
-    Value: "mc:eindicatorvisibility:visiblewhenselected"
-  }
-  Folder {
-    IsFilePartition: true
-    FilePartitionName: "_TrustedEvents"
-  }
-  InstanceHistory {
-    SelfId: 7464206498429841281
-    SubobjectId: 9289444814086108371
-    InstanceId: 2675379327775575188
-    TemplateId: 15711733878564221137
-    WasRoot: true
+  TemplateInstance {
+    ParameterOverrideMap {
+      key: 9289444814086108371
+      value {
+        Overrides {
+          Name: "Name"
+          String: "@TrustedEvents"
+        }
+        Overrides {
+          Name: "Position"
+          Vector {
+          }
+        }
+        Overrides {
+          Name: "Rotation"
+          Rotator {
+          }
+        }
+      }
+    }
+    TemplateAsset {
+      Id: 15711733878564221137
+    }
   }
 }

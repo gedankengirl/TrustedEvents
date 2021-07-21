@@ -89,6 +89,7 @@ local TRUSTED_EVENTS_HOST, ACK_ABILITY_POOL do
     TRUSTED_EVENTS_HOST = script:GetCustomProperty("TrustedEventsHost"):WaitForObject()
     ACK_ABILITY_POOL = TRUSTED_EVENTS_HOST:FindDescendantsByType("Ability")
     assert(#ACK_ABILITY_POOL >= NUM_ACKS , "can't find enough AckAbilities, need: " .. tostring(NUM_ACKS))
+    dtrace("ACK_ABILITY count:", #ACK_ABILITY_POOL)
     for i=1, #ACK_ABILITY_POOL do
         AckAbility.check(ACK_ABILITY_POOL[i])
     end
