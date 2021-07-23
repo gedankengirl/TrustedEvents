@@ -4,5 +4,13 @@ Assets {
   PlatformAssetType: 30
   SerializationVersion: 92
   VirtualFolderSetAsset {
+    Folders {
+      VirtualFolderPath: "TrustedEventsModules"
+      PlatformAssetType: 3
+    }
+    Folders {
+      VirtualFolderPath: "GameplayModules"
+      PlatformAssetType: 3
+    }
   }
 }

@@ -5,4 +5,5 @@ Assets {
   TextAsset {
   }
   SerializationVersion: 92
+  VirtualFolderPath: "TrustedEventsModules"
 }
