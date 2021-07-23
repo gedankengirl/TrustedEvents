@@ -12,5 +12,9 @@ Assets {
       VirtualFolderPath: "GameplayModules"
       PlatformAssetType: 3
     }
+    Folders {
+      VirtualFolderPath: "CoreModules"
+      PlatformAssetType: 3
+    }
   }
 }

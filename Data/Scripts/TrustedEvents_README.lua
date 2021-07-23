@@ -69,7 +69,7 @@ They are:
 
 4. TrustedEvents.UnreliableBroadcastToAllPlayers is a special method for
    unreliable broadcast: it may be a good idea to use it for unimportant
-   events (like social feed updates, etc.) It has next limits: 1024 per
+   events (like social feed updates, etc.) It has next limits: 1024 bytes per
    event and ~10KB per second.
 
 == Notes:

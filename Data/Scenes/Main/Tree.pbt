@@ -15,9 +15,11 @@ Objects {
     }
   }
   ChildIds: 2675379327775575188
+  ChildIds: 15197086269667059729
+  ChildIds: 14937399306709122492
   ChildIds: 7367735074338159388
   ChildIds: 16813558807825262224
-  ChildIds: 3235356467384453338
+  ChildIds: 13149058466534118295
   ChildIds: 14713340454944924967
   ChildIds: 10005074784157121906
   ChildIds: 14982843161775482339
@@ -764,7 +766,7 @@ Objects {
   }
 }
 Objects {
-  Id: 3235356467384453338
+  Id: 13149058466534118295
   Name: "TrustedEventsTest"
   Transform {
     Scale {
@@ -774,143 +776,35 @@ Objects {
     }
   }
   ParentId: 4781671109827199097
-  ChildIds: 4787451188479938070
-  ChildIds: 5552211155071017372
   Collidable_v2 {
     Value: "mc:ecollisionsetting:inheritfromparent"
   }
   Visible_v2 {
     Value: "mc:evisibilitysetting:inheritfromparent"
   }
-  CameraCollidable {
-    Value: "mc:ecollisionsetting:inheritfromparent"
-  }
-  EditorIndicatorVisibility {
-    Value: "mc:eindicatorvisibility:visiblewhenselected"
-  }
-  Folder {
-    IsGroup: true
-  }
-  InstanceHistory {
-    SelfId: 3235356467384453338
-    SubobjectId: 1764733786816012248
-    InstanceId: 13149058466534118295
-    TemplateId: 13525242522203125353
-    WasRoot: true
-  }
-}
-Objects {
-  Id: 5552211155071017372
-  Name: "_TrustedEventsTest(client)"
-  Transform {
-    Location {
+  TemplateInstance {
+    ParameterOverrideMap {
+      key: 1764733786816012248
+      value {
+        Overrides {
+          Name: "Name"
+          String: "TrustedEventsTest"
+        }
+        Overrides {
+          Name: "Position"
+          Vector {
+          }
+        }
+        Overrides {
+          Name: "Rotation"
+          Rotator {
+          }
+        }
+      }
     }
-    Rotation {
+    TemplateAsset {
+      Id: 13525242522203125353
     }
-    Scale {
-      X: 1
-      Y: 1
-      Z: 1
-    }
-  }
-  ParentId: 3235356467384453338
-  ChildIds: 7171756125198089650
-  Collidable_v2 {
-    Value: "mc:ecollisionsetting:forceoff"
-  }
-  Visible_v2 {
-    Value: "mc:evisibilitysetting:inheritfromparent"
-  }
-  CameraCollidable {
-    Value: "mc:ecollisionsetting:inheritfromparent"
-  }
-  EditorIndicatorVisibility {
-    Value: "mc:eindicatorvisibility:visiblewhenselected"
-  }
-  NetworkContext {
-  }
-  InstanceHistory {
-    SelfId: 5552211155071017372
-    SubobjectId: 8761393772471973534
-    InstanceId: 13149058466534118295
-    TemplateId: 13525242522203125353
-  }
-}
-Objects {
-  Id: 7171756125198089650
-  Name: "TrustedEvents_README"
-  Transform {
-    Location {
-    }
-    Rotation {
-    }
-    Scale {
-      X: 1
-      Y: 1
-      Z: 1
-    }
-  }
-  ParentId: 5552211155071017372
-  Collidable_v2 {
-    Value: "mc:ecollisionsetting:inheritfromparent"
-  }
-  Visible_v2 {
-    Value: "mc:evisibilitysetting:inheritfromparent"
-  }
-  CameraCollidable {
-    Value: "mc:ecollisionsetting:inheritfromparent"
-  }
-  EditorIndicatorVisibility {
-    Value: "mc:eindicatorvisibility:visiblewhenselected"
-  }
-  Script {
-    ScriptAsset {
-      Id: 16125848706268628621
-    }
-  }
-  InstanceHistory {
-    SelfId: 7171756125198089650
-    SubobjectId: 6277140081385089712
-    InstanceId: 13149058466534118295
-    TemplateId: 13525242522203125353
-  }
-}
-Objects {
-  Id: 4787451188479938070
-  Name: "_TrustedEventsTest(server)"
-  Transform {
-    Location {
-    }
-    Rotation {
-    }
-    Scale {
-      X: 1
-      Y: 1
-      Z: 1
-    }
-  }
-  ParentId: 3235356467384453338
-  Collidable_v2 {
-    Value: "mc:ecollisionsetting:inheritfromparent"
-  }
-  Visible_v2 {
-    Value: "mc:evisibilitysetting:inheritfromparent"
-  }
-  CameraCollidable {
-    Value: "mc:ecollisionsetting:inheritfromparent"
-  }
-  EditorIndicatorVisibility {
-    Value: "mc:eindicatorvisibility:visiblewhenselected"
-  }
-  Folder {
-    IsFilePartition: true
-    FilePartitionName: "_TrustedEventsTest(server)"
-  }
-  InstanceHistory {
-    SelfId: 4787451188479938070
-    SubobjectId: 8569121842355542292
-    InstanceId: 13149058466534118295
-    TemplateId: 13525242522203125353
   }
 }
 Objects {
@@ -1017,6 +911,90 @@ Objects {
       }
       PlayerInteractDistance: 500
       PlayerInteractAngleDeg: 50
+    }
+  }
+}
+Objects {
+  Id: 14937399306709122492
+  Name: "@GameplayModules"
+  Transform {
+    Scale {
+      X: 1
+      Y: 1
+      Z: 1
+    }
+  }
+  ParentId: 4781671109827199097
+  Collidable_v2 {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  Visible_v2 {
+    Value: "mc:evisibilitysetting:inheritfromparent"
+  }
+  TemplateInstance {
+    ParameterOverrideMap {
+      key: 1497744498325745006
+      value {
+        Overrides {
+          Name: "Name"
+          String: "@GameplayModules"
+        }
+        Overrides {
+          Name: "Position"
+          Vector {
+          }
+        }
+        Overrides {
+          Name: "Rotation"
+          Rotator {
+          }
+        }
+      }
+    }
+    TemplateAsset {
+      Id: 915022728116404952
+    }
+  }
+}
+Objects {
+  Id: 15197086269667059729
+  Name: "@CoreModules"
+  Transform {
+    Scale {
+      X: 1
+      Y: 1
+      Z: 1
+    }
+  }
+  ParentId: 4781671109827199097
+  Collidable_v2 {
+    Value: "mc:ecollisionsetting:inheritfromparent"
+  }
+  Visible_v2 {
+    Value: "mc:evisibilitysetting:inheritfromparent"
+  }
+  TemplateInstance {
+    ParameterOverrideMap {
+      key: 11079162615884462075
+      value {
+        Overrides {
+          Name: "Name"
+          String: "@CoreModules"
+        }
+        Overrides {
+          Name: "Position"
+          Vector {
+          }
+        }
+        Overrides {
+          Name: "Rotation"
+          Rotator {
+          }
+        }
+      }
+    }
+    TemplateAsset {
+      Id: 11380308345188762088
     }
   }
 }
