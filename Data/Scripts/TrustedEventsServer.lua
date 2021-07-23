@@ -258,6 +258,7 @@ function PlayerConnection:StartEndpoint()
     end)
     self.b_endpoint:SetAckCallback(function(seq)
         local key = format(BIG_KEY_FMT, seq)
+        -- delete acked frame from Private Data (Private Data has limited capacity: 16KB).
         local ok = self.player:SetPrivateNetworkedData(key, nil)
         if ok ~= PrivateNetworkedDataResultCode.SUCCESS then
             warn(format("[%s] remove: ERROR: PrivateNetworkedDataResultCode: %d", self.b_endpoint.id, ok))
@@ -266,12 +267,12 @@ function PlayerConnection:StartEndpoint()
     self.maid.b_endpoint_update = Task.Spawn(function()
         local now = gettime()
         self.b_endpoint:Update(now)
-    end, 0.01) -- small delay
+    end, 0.01) -- small delay to disperse endpoint updates
     self.maid.b_endpoint_update.repeatCount = -1
     self.maid.b_endpoint_update.repeatInterval = BIG_SERVER_CONFIG.UPDATE_INTERVAL
 
-    self.s_endpoint:SetReceiveMessageCallback(function(q) self:_OnMessageReceive(q) end)
-    self.m_endpoint:SetReceiveMessageCallback(function(q) self:_OnMessageReceive(q) end)
+    self.s_endpoint:SetReceiveMessageCallback(function(queue) self:_OnMessageReceive(queue) end)
+    self.m_endpoint:SetReceiveMessageCallback(function(queue) self:_OnMessageReceive(queue) end)
 
     self.s_endpoint:UnlockTransmission()
     self.m_endpoint:UnlockTransmission()

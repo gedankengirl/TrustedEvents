@@ -1,5 +1,5 @@
 --[[
-    Signals is a lightweight single-thread analog of non-networked Core Events.
+    Signals is a lightweight single-threaded analog of non-networked Core Events.
 
     Core Events interface:
     ======================

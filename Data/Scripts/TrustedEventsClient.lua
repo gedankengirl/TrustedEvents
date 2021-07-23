@@ -49,8 +49,7 @@ local IN_EMOTE = false
 ---------------------------------------
 -- snd only
 local SMALL_CLIENT_CONFIG = ReliableEndpoint.DEFAULT_CONFIG {
-     -- (!) we prohibit sending unreliable messages over AckAbility
-     -- (!) don't mess with this config: you can break client-to-server messaging
+    -- (!) don't mess with this config: you can break client-to-server messaging
     NAME = "TSE Client [S]",
     MAX_MESSAGE_SIZE = 25,
     MAX_PACKET_SIZE = 26,
@@ -124,6 +123,12 @@ function TrustedEventsClient._DecodeFrame(b64str)
 	return header, data
 end
 
+-- NOTE: small endpoint's purpose is to send small messages very fast (i.e. in
+-- combat). Small endpoint uses AckAbility to sent data it will interfere with
+-- all modal activity (i.e. Mounts, Character, Emotes, etc.). If any modal
+-- activity is present, we will only send packets through
+-- Events.BroadcastToServer, assuming then client-to-server traffic in this
+-- state will be low.
 function TrustedEventsClient:_CanUseSmallEndpoint(size)
     local busy = size > SMALL_CLIENT_CONFIG.MAX_MESSAGE_SIZE or
         IN_MODAL or
@@ -183,7 +188,7 @@ function TrustedEventsClient:Start()
             break
         else
             dtrace("INFO: waiting for channel ...")
-            Task.Wait(SMALL_CLIENT_CONFIG.UPDATE_INTERVAL)
+            Task.Wait(MID_CLIENT_CONFIG.UPDATE_INTERVAL)
         end
     end
 
