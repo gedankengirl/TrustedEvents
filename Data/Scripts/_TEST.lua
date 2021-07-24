@@ -2,17 +2,7 @@ _ENV.require = _G.import or require
 local clock = time or os.clock
 local CORE_ENV = CoreDebug and true
 
--- @TrustedEvents
-local AckAbility = require("AckAbility")
-local Base64 = require("Base64")
-local BitVector32 = require("BitVector32")
-local Maid = require("Maid")
-local MessagePack = require("MessagePack")
-local Queue = require("Queue")
-local ReliableEndpoint = require("ReliableEndpoint")
-local Signals = require("Signals")
-local TrustedEvents = require("TrustedEvents")
-local UnreliableEndpoint = require("UnreliableEndpoint")
+if not CORE_ENV then return end
 
 -- @CoreModules
 local Bitarray = require("BitArray")
@@ -24,6 +14,18 @@ local Logic = require("Logic")
 local Luapp = require("Luapp")
 local Snippets = require("Snippets")
 local Xoshiro256 = require("Xoshiro256")
+
+-- @TrustedEvents
+local AckAbility = require("AckAbility")
+local Base64 = require("Base64")
+local BitVector32 = require("BitVector32")
+local Maid = require("Maid")
+local MessagePack = require("MessagePack")
+local Queue = require("Queue")
+local ReliableEndpoint = require("ReliableEndpoint")
+local Signals = require("Signals")
+local TrustedEvents = require("TrustedEvents")
+local UnreliableEndpoint = require("UnreliableEndpoint")
 
 -- @GameplayModules
 local Agent = require("Agent")
@@ -38,6 +40,7 @@ local Signals = require("Signals")
 local GOAP = require("GOAP")
 
 if Environment.IsServer() then
+
 
 else -- Client
 
