@@ -62,6 +62,8 @@ local tointeger = math.tointeger
 local tconcat = table.concat
 local pack = string.pack
 local unpack = string.unpack
+local tunpack = table.unpack
+local byte = string.byte
 
 local ipairs = ipairs
 local tonumber, print = tonumber, print
@@ -72,6 +74,7 @@ local BIG_TIMEOUT = 120
 ---------------------------------------
 local CoreString = CoreString
 local CORE_ENV = CoreString and true
+local CoreDebug = CoreDebug
 local Color = Color
 local Rotation = Rotation
 local Vector2 = Vector2
@@ -81,6 +84,12 @@ local Task = Task
 local Game = Game
 local World = World
 local time = time
+
+---------------------------------------
+-- User types:
+---------------------------------------
+_ENV.require = _G.import or require
+local BitArray = require("BitArray")
 
 _ENV = nil
 
@@ -112,7 +121,7 @@ end
 local packers = setmetatable({}, {
     __index = function (t, k)
         if k == 1 then return end   -- allows ipairs
-        error("pack '" .. k .. "' is unimplemented")
+        error("pack '" .. k .. "' is unimplemented".. CoreDebug.GetStackTrace())
     end
 })
 m.packers = packers
@@ -274,8 +283,18 @@ local set_array = function (array)
 end
 m.set_array = set_array
 
+-- forward declaration
+local EXT_USER_ENCODERS = {}
+
 packers['table'] = function (buffer, tbl)
-    packers['_table'](buffer, tbl)
+    if EXT_USER_ENCODERS[tbl.type] then
+        EXT_USER_ENCODERS[tbl.type](buffer, tbl)
+    else
+        if tbl.type then
+            print("@@", tbl.type, #EXT_USER_ENCODERS)
+        end
+        packers['_table'](buffer, tbl)
+    end
 end
 
 packers['unsigned'] = function (buffer, n)
@@ -823,10 +842,19 @@ do
         end
     end
 
-    -- Core specific type-tags (should be in [0, 127])
+    -----------------------------------
+    -- Extensions
+    -----------------------------------
     -- Reference: https://github.com/msgpack/msgpack/blob/master/spec.md#extension-types
 
-    -- Core types will be in [0..40]
+    -- User specific type-tags [41, 127]
+    local EXT_USER_BitArray = 41
+    EXT_USER_ENCODERS["BitArray"] = function(buffer, ba)
+        local size = ba.size()
+        m.packers.ext(buffer, EXT_USER_BitArray, char(size%8, tunpack(ba)))
+    end
+
+    -- Core specific type-tags [0, 40]
     local EXT_CORE_VECTOR3 = 0
     local EXT_CORE_ROTATION = 1
     local EXT_CORE_COLOR = 2
@@ -941,8 +969,8 @@ do
     -----------------------------------
     -- Core serialization
     -----------------------------------
-    m.packers["userdata"] = function(buffer, udata)
-        if udata.type == "CoreObjectReference" then
+    local EXT_CORE_ENCODERS = {
+        CoreObjectReference = function(buffer, udata)
             if not udata.isAssigned then
                 m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_REFERENCE_NOT_ASSIGNED)
             else
@@ -957,14 +985,16 @@ do
                     m.packers.ext(buffer, EXT_CORE_OBJECT_REFERENCE_ID_STR, udata.id)
                 end
             end
-        elseif udata.type == "Color" then
+        end,
+        Color = function(buffer, udata)
             local data = CORE_CONST_COLOR_ENCODE[udata]
             if data then
                 m.packers.fixext1(buffer, EXT_CORE_CONST, data)
             else
                 m.packers.fixext4(buffer, EXT_CORE_COLOR, pack("BBBB", udata.r, udata.g, udata.b, udata.a))
             end
-        elseif udata.type == "Player" then
+        end,
+        Player = function(buffer, udata)
             assert(udata.id and type(udata.id) == "string")
             local str128 = nil
             -- if id is UUID, try to serialize it as a pair of uint64
@@ -980,13 +1010,15 @@ do
             else -- save verbatim id as a string
                 m.packers.ext(buffer, EXT_CORE_PLAYER_ID_STR, udata.id)
             end
-        elseif udata.type == "Rotation" then
+        end,
+        Rotation = function(buffer, udata)
             if udata == Rotation.ZERO then
                 m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_ROTATION_ZERO)
             else
                 m.packers.ext(buffer, EXT_CORE_ROTATION, pack("fff", udata.x, udata.y, udata.z))
             end
-        elseif udata.type == "Vector2" then
+        end,
+        Vector2 = function(buffer, udata)
             if udata == Vector2.ONE then
                 m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_VECTOR2_ONE)
             elseif udata == Vector2.ZERO then
@@ -994,7 +1026,8 @@ do
             else
                 m.packers.fixext8(buffer, EXT_CORE_VECTOR2, pack("ff", udata.x, udata.y))
             end
-        elseif udata.type == "Vector3" then
+        end,
+        Vector3 = function(buffer, udata)
             if udata == Vector3.ONE then
                 m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_VECTOR3_ONE)
             elseif udata == Vector3.ZERO then
@@ -1008,7 +1041,8 @@ do
             else
                 m.packers.ext(buffer, EXT_CORE_VECTOR3, pack("fff", udata.x, udata.y, udata.z))
             end
-        elseif udata.type == "Vector4" then
+        end,
+        Vector4 = function(buffer, udata)
             if udata == Vector4.ONE then
                 m.packers.fixext1(buffer, EXT_CORE_CONST, DATA_CORE_CONST_VECTOR4_ONE)
             elseif udata == Vector4.ZERO then
@@ -1016,8 +1050,14 @@ do
             else
                 m.packers.fixext16(buffer, EXT_CORE_VECTOR4, pack("ffff", udata.x, udata.y, udata.z, udata.w))
             end
-        elseif udata.type then
-            error("unsupprted Core type: ", udata.type)
+        end,
+    }
+
+    -- TODO: lookup table for top level
+    m.packers["userdata"] = function(buffer, udata)
+        local encoder = EXT_CORE_ENCODERS[udata.type]
+        if encoder then
+            encoder(buffer, udata)
         else
             error("unsuported userdata: " .. tostring(udata))
         end
@@ -1026,38 +1066,64 @@ do
     -----------------------------------
     -- Core deserialization
     -----------------------------------
-    m.build_ext = function(tag, data)
-        if tag == EXT_CORE_CONST then
-            return CORE_CONST_DECODE[data] or error(format("unknown DATA_CORE_CONST: %d", data))
-        elseif tag == EXT_CORE_VECTOR3 then
+    -- TODO: lookup table
+    local EXT_DECODERS = {
+        -- Core -------------
+        [EXT_CORE_VECTOR3] = function(data)
             local x, y, z = unpack("fff", data)
             return Vector3.New(x, y, z)
-        elseif tag == EXT_CORE_ROTATION then
+        end,
+        [EXT_CORE_ROTATION] = function(data)
             local x, y, z = unpack("fff", data)
             return Rotation.New(x, y, z)
-        elseif tag == EXT_CORE_COLOR then
+        end,
+        [EXT_CORE_COLOR] = function(data)
             local r, g, b, a = unpack("BBBB", data)
             return Color.New(r, g, b, a)
-        elseif tag == EXT_CORE_VECTOR2 then
+        end,
+        [EXT_CORE_VECTOR2] = function(data)
             local x, y = unpack("ff", data)
             return Vector2.New(x, y)
-        elseif tag == EXT_CORE_VECTOR4 then
+        end,
+        [EXT_CORE_VECTOR4] = function(data)
             local x, y, z, w = unpack("ffff", data)
             return Vector4.New(x, y, z, w)
-        elseif tag == EXT_CORE_PLAYER_ID_128 then
+        end,
+        [EXT_CORE_PLAYER_ID_128] = function(data)
             local first, second = unpack("I8I8", data)
             local id = format("%x%x", first, second)
             return Game.FindPlayer(id)
-        elseif tag == EXT_CORE_PLAYER_ID_STR then
+        end,
+        [EXT_CORE_PLAYER_ID_STR] = function(data)
             return Game.FindPlayer(data)
-        elseif tag == EXT_CORE_OBJECT_REFERENCE_ID_64 then
+        end,
+        [EXT_CORE_OBJECT_REFERENCE_ID_64] = function(data)
             local uid64 = unpack("I8", data)
             local muid = format("%X", uid64)
             return CoreObjectReferenceProxy.New(muid)
-        elseif tag == EXT_CORE_OBJECT_REFERENCE_ID_STR then
+        end,
+        [EXT_CORE_OBJECT_REFERENCE_ID_STR] = function(data)
             return CoreObjectReferenceProxy.New(data)
+        end,
+        -- User -------------
+        [EXT_USER_BitArray] = function(data)
+            local u = byte(data, 1)
+            local size = 8 * (#data - 1)
+            size = u == 0 and size or (size - 8 + u)
+            local ba = {byte(data, 2, #data)}
+            ba.size = function() return size end
+            return setmetatable(ba, BitArray)
+        end
+    }
+    -------------------------
+    -- build_ext
+    -------------------------
+    m.build_ext = function(tag, data)
+        if tag == EXT_CORE_CONST then
+            return CORE_CONST_DECODE[data] or error(format("unknown DATA_CORE_CONST: %s", data))
         else
-            error(format("unknown type extension tag: %d", tag))
+            local decoder = EXT_DECODERS[tag]
+            return decoder and decoder(data) or error(format("unknown extension tag: %d", tag))
         end
     end
 
@@ -1088,7 +1154,7 @@ do
     end
 
     local function core_types_test()
-        if not CORE_ENV then
+        if not CORE_ENV or true then
             print("  core_types_test -- skipped")
             return
         end
@@ -1114,10 +1180,22 @@ do
         print("  core_types_test -- ok")
     end
 
+    local function test_user_types()
+        local b = BitArray.new(577)
+        b:set(12, true)
+        b:set(17, true)
+        b:set(300, true)
+        local bmp = m.encode(b)
+        local bmpe = m.decode(bmp)
+        assert(b == bmpe)
+        print("  test_user_types -- ok")
+    end
+
     local function self_test()
         print("[lua-MessagePack]")
         core_types_test()
         test_measure()
+        test_user_types()
     end
 
     -- run test
